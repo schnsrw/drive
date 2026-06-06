@@ -23,6 +23,9 @@ pub struct File {
     pub original_parent_id: Option<String>,
     pub created_at: time::OffsetDateTime,
     pub modified_at: time::OffsetDateTime,
+    /// Client-generated preview, stored as a data URI. None for non-image
+    /// uploads or files predating the v0.1 migration.
+    pub thumbnail: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -34,6 +37,7 @@ pub struct NewFile {
     pub content_type: Option<String>,
     pub etag: Option<String>,
     pub owner_id: String,
+    pub thumbnail: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -54,8 +58,8 @@ impl<'a> FileRepo<'a> {
         let now_s = ts(now);
         let size_i = i64::try_from(new.size).unwrap_or(i64::MAX);
         sqlx::query(
-            "INSERT INTO files (id, parent_id, name, size, content_type, etag, owner_id, created_at, modified_at) \
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO files (id, parent_id, name, size, content_type, etag, owner_id, created_at, modified_at, thumbnail) \
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(&new.id)
         .bind(&new.parent_id)
@@ -66,6 +70,7 @@ impl<'a> FileRepo<'a> {
         .bind(&new.owner_id)
         .bind(&now_s)
         .bind(&now_s)
+        .bind(&new.thumbnail)
         .execute(self.db.pool())
         .await?;
         Ok(File {
@@ -81,13 +86,14 @@ impl<'a> FileRepo<'a> {
             original_parent_id: None,
             created_at: now,
             modified_at: now,
+            thumbnail: new.thumbnail.clone(),
         })
     }
 
     pub async fn find_by_id(&self, id: &str) -> Result<File, DbError> {
         let row = sqlx::query(
             "SELECT id, parent_id, name, size, content_type, etag, version, owner_id, \
-                    trashed_at, original_parent_id, created_at, modified_at \
+                    trashed_at, original_parent_id, created_at, modified_at, thumbnail \
              FROM files WHERE id = ?",
         )
         .bind(id)
@@ -105,7 +111,7 @@ impl<'a> FileRepo<'a> {
         let rows = match parent_id {
             Some(pid) => sqlx::query(
                 "SELECT id, parent_id, name, size, content_type, etag, version, owner_id, \
-                        trashed_at, original_parent_id, created_at, modified_at \
+                        trashed_at, original_parent_id, created_at, modified_at, thumbnail \
                  FROM files \
                  WHERE parent_id = ? AND owner_id = ? AND trashed_at IS NULL \
                  ORDER BY name ASC",
@@ -114,7 +120,7 @@ impl<'a> FileRepo<'a> {
             .bind(owner_id),
             None => sqlx::query(
                 "SELECT id, parent_id, name, size, content_type, etag, version, owner_id, \
-                        trashed_at, original_parent_id, created_at, modified_at \
+                        trashed_at, original_parent_id, created_at, modified_at, thumbnail \
                  FROM files \
                  WHERE parent_id IS NULL AND owner_id = ? AND trashed_at IS NULL \
                  ORDER BY name ASC",
@@ -218,5 +224,6 @@ fn row_to_file(row: &sqlx::any::AnyRow) -> Result<File, DbError> {
         original_parent_id: row.get("original_parent_id"),
         created_at: parse_ts(row.get::<String, _>("created_at"))?,
         modified_at: parse_ts(row.get::<String, _>("modified_at"))?,
+        thumbnail: row.try_get::<Option<String>, _>("thumbnail").ok().flatten(),
     })
 }

@@ -184,6 +184,7 @@ async fn files_insert_list_rename_overwrite_trash_restore() {
             ),
             etag: None,
             owner_id: owner.clone(),
+            thumbnail: None,
         })
         .await
         .unwrap();

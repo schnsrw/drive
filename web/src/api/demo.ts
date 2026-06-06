@@ -467,6 +467,7 @@ export async function demoRequest<T>(path: string, init: RequestInit & { json?: 
     const fd = init.body as FormData;
     const file = fd.get("file") as File;
     const parentId = (fd.get("parent_id") as string | null) ?? null;
+    const thumb = (fd.get("thumbnail") as string | null) ?? null;
     const fileDto: FileDto = {
       id: nextId("f"),
       parent_id: parentId,
@@ -476,6 +477,7 @@ export async function demoRequest<T>(path: string, init: RequestInit & { json?: 
       version: 1,
       created_at: nowIso(),
       modified_at: nowIso(),
+      thumbnail: thumb && thumb.startsWith("data:image/") ? thumb : null,
     };
     blobs.set(fileDto.id, file);
     state.files.push(fileDto);

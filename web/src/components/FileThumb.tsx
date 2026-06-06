@@ -59,18 +59,36 @@ export function FileThumb({
   name,
   kind,
   size = "tile",
+  thumbnail,
 }: {
   name: string;
   kind: FileKind;
   size?: "tile" | "small" | "big";
+  /** Real preview data URI from the file row, when available. Used in
+   * preference to the procedural gradient for image cards. */
+  thumbnail?: string | null;
 }) {
   const tint = `var(--tint-${kind === "generic" ? "doc" : kind})`;
   const padPct = size === "tile" ? "18% 20%" : size === "small" ? "12% 16%" : "0";
 
   if (kind === "img") {
-    return (
-      <div style={{ width: "100%", height: "100%", background: gradient(name) }} />
-    );
+    if (thumbnail) {
+      return (
+        <div
+          aria-label={`Preview of ${name}`}
+          role="img"
+          style={{
+            width: "100%",
+            height: "100%",
+            backgroundImage: `url(${JSON.stringify(thumbnail)})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+          }}
+        />
+      );
+    }
+    return <div style={{ width: "100%", height: "100%", background: gradient(name) }} />;
   }
 
   if (kind === "vid") {

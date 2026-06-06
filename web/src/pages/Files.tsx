@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import * as api from "../api/client.ts";
 import { ApiError, downloadUrl, type FileDto, type FolderDto } from "../api/client.ts";
+import { generateThumbnail } from "../api/thumbnail.ts";
 import { forbiddenUploadExtension } from "../api/uploadPolicy.ts";
 import { EmptyState } from "../components/EmptyState.tsx";
 import { EntryContextMenu, EntryKebab, type Entry as MenuEntry, type EntryMenuHandlers } from "../components/EntryMenu.tsx";
@@ -140,7 +141,15 @@ export function Files({
       if (list.length === 0) return;
 
       setUploading(list.map((f) => f.name));
-      const results = await Promise.allSettled(list.map((f) => api.uploadFile(f, current.id)));
+      // Thumbnail generation runs in parallel with upload start — keeps
+      // the wait the same as the network round-trip for non-image files
+      // (which return null instantly).
+      const results = await Promise.allSettled(
+        list.map(async (f) => {
+          const thumb = await generateThumbnail(f).catch(() => null);
+          return api.uploadFile(f, current.id, thumb);
+        }),
+      );
       setUploading([]);
       const ok = results.filter((r) => r.status === "fulfilled").length;
       // Any failure here is server-side (network, quota, magic-byte sniff
@@ -646,7 +655,7 @@ function FileCard({
     <EntryContextMenu entry={{ kind: "file", file }} handlers={handlers}>
       <Card onClick={onOpen} kebab={<EntryKebab entry={{ kind: "file", file }} handlers={handlers} />}>
         <div style={{ height: 130, overflow: "hidden", borderBottom: "1px solid var(--line)" }}>
-          <FileThumb name={file.name} kind={kind} />
+          <FileThumb name={file.name} kind={kind} thumbnail={file.thumbnail} />
         </div>
         <CardMeta name={file.name} kind={kind} sub={`${labelForKind(kind)} · ${relative(file.modified_at)}`} />
       </Card>
@@ -880,6 +889,7 @@ function ListView({
               onClick={() => onOpenFile(e.file.id)}
               last={last}
               kebab={<EntryKebab entry={entry} handlers={handlers} />}
+              thumbnail={e.file.thumbnail}
             />
           </EntryContextMenu>
         );
@@ -901,6 +911,7 @@ function ListRow({
   last,
   ghost,
   kebab,
+  thumbnail,
 }: {
   name: string;
   kind: FileKind;
@@ -911,6 +922,7 @@ function ListRow({
   last?: boolean;
   ghost?: boolean;
   kebab?: React.ReactNode;
+  thumbnail?: string | null;
 }) {
   return (
     <div
@@ -946,7 +958,7 @@ function ListRow({
             display: "flex",
           }}
         >
-          <FileThumb name={name} kind={kind} size="small" />
+          <FileThumb name={name} kind={kind} size="small" thumbnail={thumbnail} />
         </span>
         <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</span>
       </div>

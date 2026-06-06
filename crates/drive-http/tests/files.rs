@@ -329,6 +329,93 @@ async fn upload_still_accepts_macro_enabled_office_files() {
 }
 
 #[tokio::test]
+async fn upload_with_thumbnail_stores_and_returns_it() {
+    let app = router(fixture().await);
+    let cookie = sign_in(&app).await;
+
+    // Minimal 1x1 transparent PNG, base64-encoded. Real clients send a
+    // 200×200 canvas thumbnail; the shape is identical.
+    let png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAoAAv/lxKUAAAAASUVORK5CYII=";
+
+    let boundary = "----testboundary-thumb";
+    let body = build_multipart(
+        boundary,
+        &[
+            MultipartField::File("file", "photo.png", "image/png", b"PNGDATA"),
+            MultipartField::Text("thumbnail", png),
+        ],
+    );
+    let r = app
+        .clone()
+        .oneshot(auth_req(
+            "POST",
+            "/api/files",
+            &cookie,
+            Some(&format!("multipart/form-data; boundary={boundary}")),
+            Body::from(body),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(r.status(), StatusCode::OK);
+    let dto = json_body(r).await;
+    assert_eq!(dto["thumbnail"].as_str().unwrap(), png);
+
+    // Listing surfaces it too.
+    let r = app
+        .clone()
+        .oneshot(auth_req(
+            "GET",
+            "/api/folders/root/children",
+            &cookie,
+            None,
+            Body::empty(),
+        ))
+        .await
+        .unwrap();
+    let listed = json_body(r).await;
+    assert_eq!(listed["files"][0]["thumbnail"].as_str().unwrap(), png);
+}
+
+#[tokio::test]
+async fn upload_with_oversize_or_garbage_thumbnail_drops_it_silently() {
+    let app = router(fixture().await);
+    let cookie = sign_in(&app).await;
+
+    // Over the 64 KB cap.
+    let huge = format!("data:image/png;base64,{}", "A".repeat(70_000));
+    // Not a data URI at all.
+    let garbage = "<script>alert(1)</script>";
+
+    for thumb in [huge.as_str(), garbage] {
+        let boundary = "----testboundary-thumb-bad";
+        let body = build_multipart(
+            boundary,
+            &[
+                MultipartField::File("file", "p.png", "image/png", b"data"),
+                MultipartField::Text("thumbnail", thumb),
+            ],
+        );
+        let r = app
+            .clone()
+            .oneshot(auth_req(
+                "POST",
+                "/api/files",
+                &cookie,
+                Some(&format!("multipart/form-data; boundary={boundary}")),
+                Body::from(body),
+            ))
+            .await
+            .unwrap();
+        assert_eq!(r.status(), StatusCode::OK, "upload should still succeed");
+        let dto = json_body(r).await;
+        assert!(
+            dto.get("thumbnail").is_none() || dto["thumbnail"].is_null(),
+            "thumbnail should be absent; got {dto}"
+        );
+    }
+}
+
+#[tokio::test]
 async fn rename_then_move_then_trash_then_restore() {
     let app = router(fixture().await);
     let cookie = sign_in(&app).await;

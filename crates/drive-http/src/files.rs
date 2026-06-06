@@ -132,6 +132,8 @@ struct FileDto {
     version: u32,
     created_at: String,
     modified_at: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    thumbnail: Option<String>,
 }
 
 impl From<File> for FileDto {
@@ -145,6 +147,7 @@ impl From<File> for FileDto {
             version: f.version,
             created_at: rfc3339(f.created_at),
             modified_at: rfc3339(f.modified_at),
+            thumbnail: f.thumbnail,
         }
     }
 }
@@ -214,6 +217,21 @@ const FORBIDDEN_UPLOAD_EXTENSIONS: &[&str] = &[
     "jar", "class", "dll", "so", "dylib", // Shortcut-style files that resolve elsewhere
     "url", "desktop",
 ];
+
+/// Cap for client-supplied thumbnail data URIs. 64 KB is plenty for a
+/// 200×200 PNG/WebP at reasonable quality. Beyond that we drop it and the
+/// SPA falls back to the procedural thumbnail.
+const THUMBNAIL_MAX_BYTES: usize = 64 * 1024;
+
+/// Cheap validation: must look like a `data:image/*;base64,…` URI and fit
+/// the byte cap. We don't decode the base64 — the client owns the format
+/// choice and the server treats it as opaque display metadata.
+fn validate_thumbnail_uri(s: &str) -> bool {
+    if s.len() > THUMBNAIL_MAX_BYTES {
+        return false;
+    }
+    s.starts_with("data:image/") && s.contains(";base64,")
+}
 
 /// Returns `Err(FilesError::ForbiddenExtension)` if the last dotted
 /// extension of `filename` is in the upload blocklist. Case-insensitive.
@@ -344,6 +362,7 @@ async fn upload_file(
     let mut file_bytes: Option<Bytes> = None;
     let mut filename: Option<String> = None;
     let mut content_type: Option<String> = None;
+    let mut thumbnail: Option<String> = None;
 
     while let Some(field) = multipart
         .next_field()
@@ -368,6 +387,17 @@ async fn upload_file(
                     .await
                     .map_err(|e| FilesError::Validation(e.to_string()))?;
                 file_bytes = Some(bytes);
+            }
+            Some("thumbnail") => {
+                // Client-generated data URI. Hard-cap server-side so a
+                // misbehaving client can't blow up the metadata row.
+                let text = field
+                    .text()
+                    .await
+                    .map_err(|e| FilesError::Validation(e.to_string()))?;
+                if !text.is_empty() && validate_thumbnail_uri(&text) {
+                    thumbnail = Some(text);
+                }
             }
             _ => {}
         }
@@ -404,6 +434,7 @@ async fn upload_file(
             content_type: meta.content_type.or(content_type),
             etag: meta.etag,
             owner_id: session.user_id.clone(),
+            thumbnail,
         })
         .await
         .map_err(|e| FilesError::Internal(e.to_string()))?;

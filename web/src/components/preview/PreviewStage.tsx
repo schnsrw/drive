@@ -287,7 +287,7 @@ function PlaceholderStage({ file, kind }: { file: FileDto; kind: FileKind }) {
           boxShadow: "0 10px 40px rgba(26,26,30,.2)",
         }}
       >
-        <FileThumb name={file.name} kind={kind} size="big" />
+        <FileThumb name={file.name} kind={kind} size="big" thumbnail={file.thumbnail} />
       </div>
     </div>
   );

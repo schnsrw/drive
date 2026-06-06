@@ -256,6 +256,8 @@ export interface FileDto {
   version: number;
   created_at: string;
   modified_at: string;
+  /** Client-generated data URI for image uploads (pipeline §5.2). */
+  thumbnail?: string | null;
 }
 
 export interface ListResp {
@@ -283,9 +285,14 @@ export async function createFolder(name: string, parentId: string | null): Promi
   });
 }
 
-export async function uploadFile(file: File, parentId: string | null): Promise<FileDto> {
+export async function uploadFile(
+  file: File,
+  parentId: string | null,
+  thumbnail?: string | null,
+): Promise<FileDto> {
   const fd = new FormData();
   if (parentId) fd.append("parent_id", parentId);
+  if (thumbnail) fd.append("thumbnail", thumbnail);
   fd.append("file", file, file.name);
   return request<FileDto>("/api/files", {
     method: "POST",

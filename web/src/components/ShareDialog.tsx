@@ -161,7 +161,7 @@ export function ShareDialog({
 
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14 }}>
             <span style={{ width: 36, height: 36, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
-              <FileThumb name={file.name} kind={kind} size="small" />
+              <FileThumb name={file.name} kind={kind} size="small" thumbnail={file.thumbnail} />
             </span>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontWeight: 500, fontSize: "var(--text-md)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>

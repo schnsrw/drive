@@ -152,7 +152,7 @@ export function PreviewModal({
                   flexShrink: 0,
                 }}
               >
-                <FileThumb name={file.name} kind={kind} size="small" />
+                <FileThumb name={file.name} kind={kind} size="small" thumbnail={file.thumbnail} />
               </span>
               <h3
                 style={{

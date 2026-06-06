@@ -103,6 +103,7 @@ async fn seed_file(state: &HttpState, owner_id: &str) -> String {
             content_type: Some("application/pdf".into()),
             etag: Some("etag".into()),
             owner_id: owner_id.into(),
+            thumbnail: None,
         })
         .await
         .unwrap();
