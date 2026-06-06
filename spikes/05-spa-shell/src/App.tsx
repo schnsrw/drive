@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Cloud, Moon, Sun } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 
 import { EmptyState } from "./components/EmptyState.tsx";
+import { Logo } from "./components/Logo.tsx";
 
 type Theme = "light" | "dark" | "system";
 
@@ -45,7 +46,9 @@ export function App() {
         }}
       >
         <div className="flex items-center gap-2">
-          <Cloud size={20} strokeWidth={2} color="var(--accent)" />
+          <span style={{ color: "var(--fg-default)" }}>
+            <Logo size={22} />
+          </span>
           <span
             className="font-semibold tracking-tight"
             style={{ fontSize: "var(--text-md)", color: "var(--fg-default)" }}

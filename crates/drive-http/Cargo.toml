@@ -32,3 +32,9 @@ tracing       = { workspace = true }
 rust-embed    = { workspace = true }
 mime_guess    = { workspace = true }
 url           = { workspace = true }
+time          = { workspace = true }
+
+[dev-dependencies]
+http-body-util = { workspace = true }
+tower          = { version = "0.5", features = ["util"] }
+tempfile       = { workspace = true }

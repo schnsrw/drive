@@ -1,12 +1,17 @@
 <div align="center">
 
-# Casual Drive
+<img src="./logo.svg" alt="Casual Drive" width="420" />
 
 **Open-source self-hosted file manager that opens `.xlsx` and `.docx` in real-time, in-browser editors — an alternative to Google Drive and Microsoft OneDrive you run on your own server.**
 
+[![CI](https://img.shields.io/github/actions/workflow/status/schnsrw/drive/ci.yml?branch=main&label=CI)](./.github/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
-[![Status](https://img.shields.io/badge/status-Phase%200%20spikes-orange)](./PLAN.md)
+[![Status](https://img.shields.io/badge/status-Phase%201%20walking%20skeleton-yellow)](./PLAN.md)
 [![Rust](https://img.shields.io/badge/rust-1.85%2B-orange?logo=rust)](https://www.rust-lang.org/)
+[![Tests](https://img.shields.io/badge/tests-60%20passing-brightgreen)](#)
+[![Polish bar](https://img.shields.io/badge/polish-Things%203%20%E2%80%A2%20Linear%20%E2%80%A2%20Raycast-blueviolet)](./docs/research/04-polish-principles.md)
+
+[Architecture](./docs/ARCHITECTURE.md) &nbsp;·&nbsp; [Plan](./PLAN.md) &nbsp;·&nbsp; [UX Flows](./docs/ux/01-flows.md) &nbsp;·&nbsp; [Surface Spec](./docs/ux/02-surface.md) &nbsp;·&nbsp; [Research](./docs/research/00-synthesis.md)
 
 </div>
 
@@ -14,7 +19,7 @@
 
 Casual Drive is the file-centric front door for the [Casual Office](https://schnsrw.live) suite. A single Rust binary, a single Docker container, four pluggable storage backends, a polished web UI. Files live in *your* storage (filesystem / S3 / MinIO); editing happens in our [Casual Sheets](https://github.com/schnsrw/sheets) and [Casual Editor](https://github.com/schnsrw/docx) — wired together via the [WOPI](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/online/) protocol.
 
-> **Status — Phase 0.** Research and planning are complete. The proof-of-concept spikes (storage, WOPI host, two-origin model) are green. Phase 1 (walking skeleton) is the next milestone — see [`PLAN.md`](./PLAN.md).
+> **Status — Phase 1 walking skeleton.** Research, planning, UX/surface specs, and four Phase-0 spikes are complete. The production crates are stubbed and runnable: Drive boots, serves both origins, signs URLs, validates WOPI tokens, and rejects cross-origin requests with 421. SPA wiring, SQLite schema, admin auth, and the full file API are the next layers — see [`PLAN.md`](./PLAN.md).
 
 ---
 

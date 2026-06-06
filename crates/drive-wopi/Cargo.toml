@@ -18,9 +18,14 @@ drive-storage = { path = "../drive-storage" }
 axum          = { workspace = true }
 tokio         = { workspace = true }
 bytes         = { workspace = true }
+futures       = { workspace = true }
 serde         = { workspace = true }
 serde_json    = { workspace = true }
 thiserror     = { workspace = true }
 time          = { workspace = true }
 jsonwebtoken  = { workspace = true }
 tracing       = { workspace = true }
+
+[dev-dependencies]
+http-body-util = { workspace = true }
+tower          = { version = "0.5", features = ["util"] }

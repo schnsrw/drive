@@ -423,6 +423,7 @@ dependencies = [
  "drive-storage",
  "drive-wopi",
  "tokio",
+ "tower-http",
  "tracing",
  "tracing-subscriber",
 ]
@@ -449,9 +450,11 @@ name = "drive-core"
 version = "0.0.1"
 dependencies = [
  "serde",
+ "serde_json",
  "thiserror",
  "time",
  "ulid",
+ "url",
 ]
 
 [[package]]
@@ -466,12 +469,15 @@ dependencies = [
  "drive-storage",
  "drive-wopi",
  "futures",
+ "http-body-util",
  "hyper",
  "mime_guess",
  "rust-embed",
  "serde",
  "serde_json",
+ "tempfile",
  "thiserror",
+ "time",
  "tokio",
  "tower",
  "tower-http",
@@ -492,6 +498,7 @@ dependencies = [
  "serde",
  "sha2",
  "subtle",
+ "tempfile",
  "thiserror",
  "time",
  "tokio",
@@ -507,12 +514,15 @@ dependencies = [
  "bytes",
  "drive-core",
  "drive-storage",
+ "futures",
+ "http-body-util",
  "jsonwebtoken",
  "serde",
  "serde_json",
  "thiserror",
  "time",
  "tokio",
+ "tower",
  "tracing",
 ]
 
@@ -1092,6 +1102,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68ab91017fe16c622486840e4c83c9a37afeff978bd239b5293d61ece587de66"
 
 [[package]]
+name = "linux-raw-sys"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53"
+
+[[package]]
 name = "litemap"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1599,6 +1615,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustix"
+version = "1.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6fe4565b9518b83ef4f91bb47ce29620ca828bd32cb7e408f0062e9930ba190"
+dependencies = [
+ "bitflags",
+ "errno",
+ "libc",
+ "linux-raw-sys",
+ "windows-sys",
+]
+
+[[package]]
 name = "rustversion"
 version = "1.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1828,6 +1857,19 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "tempfile"
+version = "3.27.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
+dependencies = [
+ "fastrand",
+ "getrandom 0.4.2",
+ "once_cell",
+ "rustix",
+ "windows-sys",
 ]
 
 [[package]]

@@ -1,6 +1,6 @@
 [package]
 name        = "drive-core"
-description = "Domain types, errors, and IDs for Casual Drive"
+description = "Domain types, errors, IDs, and config for Casual Drive"
 version     = { workspace = true }
 edition     = { workspace = true }
 license     = { workspace = true }
@@ -16,3 +16,7 @@ serde     = { workspace = true }
 thiserror = { workspace = true }
 time      = { workspace = true }
 ulid      = { workspace = true }
+url       = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

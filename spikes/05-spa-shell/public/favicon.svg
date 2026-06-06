@@ -1,0 +1,14 @@
+<svg viewBox="0 0 172 172" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>Casual Drive</title>
+  <defs>
+    <clipPath id="cd-fav">
+      <rect x="0" y="0" width="172" height="172" rx="40"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#cd-fav)">
+    <rect width="172" height="172" fill="#16161A"/>
+    <circle cx="78"  cy="86" r="52"  fill="#F5F3EE"/>
+    <circle cx="104" cy="72" r="52"  fill="#16161A"/>
+    <circle cx="112" cy="64" r="6.5" fill="#F5F3EE"/>
+  </g>
+</svg>

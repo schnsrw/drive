@@ -1,0 +1,24 @@
+<svg viewBox="0 0 680 320" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>Casual Drive</title>
+  <desc>Monochrome rounded-square mark with a negative-space crescent, paired with a light letter-spaced wordmark.</desc>
+
+  <defs>
+    <clipPath id="cd-mark-clip">
+      <rect x="0" y="0" width="172" height="172" rx="40"/>
+    </clipPath>
+  </defs>
+
+  <!-- Mark -->
+  <g transform="translate(150 60)" clip-path="url(#cd-mark-clip)">
+    <rect width="172" height="172" fill="#16161A"/>
+    <circle cx="78"  cy="86" r="52"  fill="#F5F3EE"/>
+    <circle cx="104" cy="72" r="52"  fill="#16161A"/>
+    <circle cx="112" cy="64" r="6.5" fill="#F5F3EE"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="372" y="142" font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif"
+        font-size="46" font-weight="400" letter-spacing="6" fill="#16161A">CASUAL</text>
+  <text x="372" y="198" font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif"
+        font-size="46" font-weight="300" letter-spacing="14" fill="#8A8A92">DRIVE</text>
+</svg>
