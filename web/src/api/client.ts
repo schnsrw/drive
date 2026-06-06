@@ -1,5 +1,12 @@
 // Thin fetch wrapper. Same-origin (the SPA and the API live on the app
 // origin). Every state-changing call sends X-CSRF-Token when we have one.
+//
+// In demo mode (VITE_DEMO_MODE=1, GitHub Pages build) requests are routed
+// to an in-memory shim instead — see ./demo.ts. Same return types.
+
+import { demoDownloadUrl, demoRequest } from "./demo.ts";
+
+export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "1";
 
 export class ApiError extends Error {
   status: number;
@@ -23,6 +30,15 @@ async function request<T>(
   path: string,
   init: RequestInit & { json?: unknown } = {},
 ): Promise<T> {
+  if (DEMO_MODE) {
+    try {
+      return await demoRequest<T>(path, init);
+    } catch (err) {
+      const e = err as Error & { status?: number; body?: unknown };
+      throw new ApiError(e.status ?? 500, e.body ?? null, e.message);
+    }
+  }
+
   const headers = new Headers(init.headers ?? {});
   let body: BodyInit | null = (init.body as BodyInit | null | undefined) ?? null;
 
@@ -164,5 +180,6 @@ export async function trashFile(id: string): Promise<void> {
 }
 
 export function downloadUrl(id: string): string {
+  if (DEMO_MODE) return demoDownloadUrl(id);
   return `/api/files/${encodeURIComponent(id)}/download`;
 }

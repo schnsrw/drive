@@ -5,9 +5,7 @@
 //!   cargo run --quiet --example hash -p drive-auth -- <password>
 
 fn main() {
-    let pw = std::env::args()
-        .nth(1)
-        .expect("usage: hash <password>");
+    let pw = std::env::args().nth(1).expect("usage: hash <password>");
     let h = drive_auth::hash_password(&pw).expect("hash_password");
     println!("{h}");
 }

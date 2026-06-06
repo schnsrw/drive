@@ -55,10 +55,7 @@ struct Me {
 /// `/api/me` requires an authenticated session — returns 401 for the SPA's
 /// initial bootstrap when no cookie is present, so AuthContext falls back
 /// to the SignIn page instead of going straight to the shell.
-async fn api_me(
-    State(s): State<HttpState>,
-    session: AuthSession,
-) -> axum::Json<Me> {
+async fn api_me(State(s): State<HttpState>, session: AuthSession) -> axum::Json<Me> {
     axum::Json(Me {
         admin: session.username.clone(),
         backend: format!("{:?}", s.config.backend),

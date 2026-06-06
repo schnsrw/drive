@@ -1,9 +1,22 @@
 # syntax=docker/dockerfile:1.7
-# Multi-stage build with cargo-chef for ~5x faster cached rebuilds.
+# Multi-stage build:
+#   1. web-build  → produces web/dist/ (rust-embed needs this)
+#   2. planner    → cargo-chef recipe for cached dep builds
+#   3. builder    → cooks deps, copies SPA artifacts, compiles drive
+#   4. runtime    → small Debian image with just the binary
 # See: https://github.com/LukeMathWalker/cargo-chef
 
+# ─── Web: build the SPA bundle (needed by drive-http rust-embed) ─────────
+FROM node:22-bookworm-slim AS web-build
+WORKDIR /web
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
+COPY web/package.json web/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+COPY web/ ./
+RUN pnpm build
+
 # ─── Plan: extract a dependency-only recipe so deps cache independently ──
-FROM rust:1.85-slim AS chef
+FROM rust:1.90-slim AS chef
 WORKDIR /app
 RUN apt-get update \
  && apt-get install -y --no-install-recommends pkg-config libssl-dev \
@@ -19,6 +32,7 @@ FROM chef AS builder
 COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 COPY . .
+COPY --from=web-build /web/dist ./web/dist
 RUN cargo build --release --bin drive
 
 # ─── Runtime: small image, no toolchain ───────────────────────────────────

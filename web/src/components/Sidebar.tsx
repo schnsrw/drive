@@ -1,23 +1,58 @@
 import { useState } from "react";
-import { Clock, FolderClosed, Home, Plus, Settings, Trash2, Upload } from "lucide-react";
+import {
+  Activity,
+  Building2,
+  ChevronDown,
+  Clock,
+  FolderClosed,
+  Gauge,
+  Home,
+  Plus,
+  Settings,
+  Share2,
+  ShieldCheck,
+  Star,
+  Trash2,
+  Upload,
+  Users,
+} from "lucide-react";
 
 import { Logo, Wordmark } from "./Logo.tsx";
 
+export type NavId =
+  | "home"
+  | "recent"
+  | "starred"
+  | "shared"
+  | "trash"
+  | "activity"
+  | "settings"
+  | "admin";
+
 interface NavItem {
-  id: "home" | "recent" | "trash";
+  id: NavId;
   label: string;
   icon: typeof Home;
   badge?: number;
+  comingSoon?: boolean;
 }
 
 const LIBRARY: NavItem[] = [
   { id: "home", label: "My Drive", icon: Home },
-  { id: "recent", label: "Recent", icon: Clock },
+  { id: "recent", label: "Recent", icon: Clock, comingSoon: true },
+  { id: "starred", label: "Starred", icon: Star, comingSoon: true },
+  { id: "shared", label: "Shared", icon: Share2, comingSoon: true },
 ];
 
-const SYSTEM: NavItem[] = [{ id: "trash", label: "Trash", icon: Trash2 }];
+const WORKSPACE: NavItem[] = [
+  { id: "activity", label: "Activity", icon: Activity, comingSoon: true },
+  { id: "admin", label: "Admin", icon: Gauge, comingSoon: true },
+];
 
-export type NavId = NavItem["id"];
+const SYSTEM: NavItem[] = [
+  { id: "trash", label: "Trash", icon: Trash2 },
+  { id: "settings", label: "Settings", icon: Settings },
+];
 
 export function Sidebar({
   current,
@@ -44,7 +79,7 @@ export function Sidebar({
         width: 248,
         flexShrink: 0,
         height: "100vh",
-        padding: "26px 18px",
+        padding: "22px 16px",
         display: "flex",
         flexDirection: "column",
         gap: 6,
@@ -52,17 +87,20 @@ export function Sidebar({
         borderRight: "1px solid var(--line)",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 8px 22px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 8px 16px" }}>
         <div style={{ color: "var(--ink)" }}>
-          <Logo size={38} />
+          <Logo size={36} />
         </div>
         <Wordmark />
       </div>
 
-      <div style={{ position: "relative", marginBottom: 18 }}>
+      <WorkspaceSwitcher />
+
+      <div style={{ position: "relative", marginTop: 12, marginBottom: 14 }}>
         <button
           type="button"
           onClick={() => setMenuOpen((v) => !v)}
+          aria-expanded={menuOpen}
           style={{
             display: "flex",
             alignItems: "center",
@@ -118,6 +156,17 @@ export function Sidebar({
         ))}
       </Section>
 
+      <Section label="Workspace">
+        {WORKSPACE.map((item) => (
+          <NavRow
+            key={item.id}
+            item={item}
+            active={current === item.id}
+            onClick={() => onSelect(item.id)}
+          />
+        ))}
+      </Section>
+
       <Section label="System">
         {SYSTEM.map((item) => (
           <NavRow
@@ -127,7 +176,6 @@ export function Sidebar({
             onClick={() => onSelect(item.id)}
           />
         ))}
-        <DisabledRow icon={Settings} label="Settings" />
       </Section>
 
       <div style={{ flex: 1 }} />
@@ -139,23 +187,93 @@ export function Sidebar({
   );
 }
 
+function WorkspaceSwitcher() {
+  return (
+    <button
+      type="button"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        width: "100%",
+        padding: "10px 12px",
+        background: "var(--card)",
+        border: "1px solid var(--line)",
+        borderRadius: 11,
+        cursor: "pointer",
+        fontFamily: "var(--font-sans)",
+        fontSize: "var(--text-sm)",
+        fontWeight: 500,
+        color: "var(--ink)",
+        textAlign: "left",
+        transition: "background 150ms, border-color 150ms",
+      }}
+      onMouseOver={(e) => {
+        e.currentTarget.style.background = "var(--bg-hover)";
+        e.currentTarget.style.borderColor = "var(--line-strong)";
+      }}
+      onMouseOut={(e) => {
+        e.currentTarget.style.background = "var(--card)";
+        e.currentTarget.style.borderColor = "var(--line)";
+      }}
+      title="Switch workspace (coming in v0.2)"
+    >
+      <span
+        style={{
+          width: 24,
+          height: 24,
+          borderRadius: 6,
+          background: "var(--ink)",
+          color: "var(--paper)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        <Building2 size={14} strokeWidth={1.8} />
+      </span>
+      <span
+        style={{
+          flex: 1,
+          minWidth: 0,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        Personal
+      </span>
+      <ChevronDown size={14} style={{ color: "var(--muted)", flexShrink: 0 }} />
+    </button>
+  );
+}
+
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <>
       <span
         style={{
-          fontSize: "var(--text-xs)",
+          fontSize: 10,
           letterSpacing: "2.5px",
           textTransform: "uppercase",
           color: "var(--muted-2)",
           fontWeight: 600,
-          padding: "6px 12px",
-          marginTop: 6,
+          padding: "10px 12px 4px",
         }}
       >
         {label}
       </span>
-      <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 2, margin: 0, padding: 0 }}>
+      <ul
+        style={{
+          listStyle: "none",
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+          margin: 0,
+          padding: 0,
+        }}
+      >
         {children}
       </ul>
     </>
@@ -184,7 +302,7 @@ function NavRow({
           alignItems: "center",
           gap: 12,
           width: "100%",
-          padding: "10px 12px",
+          padding: "9px 12px",
           borderRadius: 11,
           background: active ? "var(--ink)" : "transparent",
           color: active ? "var(--paper)" : "var(--ink-soft)",
@@ -203,9 +321,22 @@ function NavRow({
           if (!active) e.currentTarget.style.background = "transparent";
         }}
       >
-        <Icon size={18} strokeWidth={1.7} style={{ opacity: active ? 1 : 0.7 }} />
+        <Icon size={17} strokeWidth={1.7} style={{ opacity: active ? 1 : 0.7 }} />
         <span style={{ flex: 1 }}>{item.label}</span>
-        {badge !== undefined && badge > 0 && (
+        {item.comingSoon && (
+          <span
+            style={{
+              fontSize: 10,
+              letterSpacing: "1px",
+              textTransform: "uppercase",
+              color: active ? "rgba(242,240,234,.5)" : "var(--muted-2)",
+              fontWeight: 600,
+            }}
+          >
+            soon
+          </span>
+        )}
+        {badge !== undefined && badge > 0 && !item.comingSoon && (
           <span
             className="tabular-nums"
             style={{
@@ -217,28 +348,6 @@ function NavRow({
           </span>
         )}
       </button>
-    </li>
-  );
-}
-
-function DisabledRow({ icon: Icon, label }: { icon: typeof Settings; label: string }) {
-  return (
-    <li>
-      <span
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          padding: "10px 12px",
-          borderRadius: 11,
-          color: "var(--muted-2)",
-          fontSize: "var(--text-md)",
-          cursor: "default",
-        }}
-      >
-        <Icon size={18} strokeWidth={1.7} style={{ opacity: 0.5 }} />
-        {label}
-      </span>
     </li>
   );
 }
@@ -282,7 +391,15 @@ function NewMenu({
   );
 }
 
-function MenuItem({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
+function MenuItem({
+  icon,
+  label,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
@@ -314,15 +431,16 @@ function MenuItem({ icon, label, onClick }: { icon: React.ReactNode; label: stri
 }
 
 function StorageCard({ usedBytes, quotaBytes }: { usedBytes: number; quotaBytes?: number }) {
-  const pct = quotaBytes && quotaBytes > 0 ? Math.min(100, Math.round((usedBytes / quotaBytes) * 100)) : null;
+  const pct =
+    quotaBytes && quotaBytes > 0 ? Math.min(100, Math.round((usedBytes / quotaBytes) * 100)) : null;
   return (
     <div
       style={{
         background: "var(--card)",
         border: "1px solid var(--line)",
         borderRadius: "var(--radius)",
-        padding: 18,
-        marginBottom: 12,
+        padding: 14,
+        marginBottom: 8,
       }}
     >
       <div
@@ -330,14 +448,18 @@ function StorageCard({ usedBytes, quotaBytes }: { usedBytes: number; quotaBytes?
           display: "flex",
           justifyContent: "space-between",
           alignItems: "baseline",
-          marginBottom: 12,
+          marginBottom: 10,
         }}
       >
         <span style={{ fontSize: "var(--text-sm)", fontWeight: 500 }}>Storage</span>
         {pct !== null && (
           <span
             className="tabular-nums"
-            style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-sm)", color: "var(--muted)" }}
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "var(--text-sm)",
+              color: "var(--muted)",
+            }}
           >
             {pct}%
           </span>
@@ -355,7 +477,7 @@ function StorageCard({ usedBytes, quotaBytes }: { usedBytes: number; quotaBytes?
           }}
         />
       </div>
-      <div style={{ fontSize: "var(--text-xs)", color: "var(--muted)", marginTop: 11 }}>
+      <div style={{ fontSize: "var(--text-xs)", color: "var(--muted)", marginTop: 9 }}>
         {pct !== null
           ? `${formatBytes(usedBytes)} of ${formatBytes(quotaBytes!)} used`
           : `${formatBytes(usedBytes)} used`}
@@ -419,10 +541,20 @@ function AvatarRow({ username }: { username: string }) {
         >
           {username}
         </span>
-        <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--muted)" }}>
+        <span
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            fontSize: "var(--text-xs)",
+            color: "var(--muted)",
+          }}
+        >
+          <ShieldCheck size={11} strokeWidth={1.8} />
           Admin
         </span>
       </span>
+      <Users size={14} style={{ color: "var(--muted-2)" }} />
     </button>
   );
 }

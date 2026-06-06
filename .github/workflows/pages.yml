@@ -1,0 +1,57 @@
+name: Deploy demo to GitHub Pages
+
+# Built artifact is the SPA in demo-mode (VITE_DEMO_MODE=1) — no backend.
+# Served at drive.schnsrw.live (custom domain). The CNAME ships in
+# web/public/CNAME so Vite copies it into dist/ verbatim.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one concurrent deploy; skip queued duplicates.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build demo bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - working-directory: web
+        run: pnpm install --frozen-lockfile
+      - name: Build SPA in demo mode
+        working-directory: web
+        env:
+          VITE_DEMO_MODE: "1"
+          VITE_DEMO_BANNER: Demo build — data is in-memory only, resets on reload.
+        run: pnpm build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  deploy:
+    name: deploy to Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
