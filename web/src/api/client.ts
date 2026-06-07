@@ -264,6 +264,16 @@ export interface FileDto {
   modified_at: string;
   /** Client-generated data URI for image uploads (pipeline §5.2). */
   thumbnail?: string | null;
+  /** Lifecycle (pipeline §13.6). Direct uploads sit at `uploading` until
+   * the SPA's `complete` call flips them to `ready`. The Files surface
+   * filters out non-ready rows by default. */
+  status?: "uploading" | "ready" | "failed";
+  /** Server-side thumbnail generation state (pipeline §5.4). The SPA
+   * uses `thumb_urls` (below) when this is `ready`. */
+  thumbs_state?: "pending" | "ready" | "unsupported" | "failed";
+  /** Convenience URLs for the three thumbnail sizes. Populated when
+   * `thumbs_state === "ready"`. */
+  thumb_urls?: { small: string; medium: string; large: string };
 }
 
 export interface ListResp {
@@ -296,7 +306,43 @@ export async function createFolder(
   });
 }
 
+/// 8 MiB — files at or above this threshold try the direct-to-storage
+/// path first (pipeline §13.6). Smaller files go via the proxy multipart
+/// upload — the round-trip is cheaper than the extra metadata hop.
+const DIRECT_UPLOAD_THRESHOLD = 8 * 1024 * 1024;
+
+const DIRECT_UPLOAD_ENABLED =
+  (typeof import.meta !== "undefined" &&
+    Boolean((import.meta as { env?: Record<string, unknown> }).env?.VITE_DIRECT_UPLOAD)) ||
+  false;
+
 export async function uploadFile(
+  file: File,
+  parentId: string | null,
+  thumbnail?: string | null,
+  workspaceId?: string | null,
+): Promise<FileDto> {
+  // Direct path for large files when the workspace's storage supports it.
+  // Server returns 409 on adapters that can't presign (fs / memory) —
+  // we catch that and fall through to the proxy.
+  if (DIRECT_UPLOAD_ENABLED && file.size >= DIRECT_UPLOAD_THRESHOLD) {
+    try {
+      return await uploadDirect(file, parentId, thumbnail, workspaceId);
+    } catch (e) {
+      const err = e as ApiError;
+      // 409 = adapter can't presign; 0 / network failure = CORS or
+      // similar. Either way, the proxy path always works.
+      if (err.status === undefined || err.status === 409 || err.status === 0) {
+        console.warn("direct upload fell back to proxy:", err.message ?? err);
+      } else {
+        throw e;
+      }
+    }
+  }
+  return uploadViaProxy(file, parentId, thumbnail, workspaceId);
+}
+
+async function uploadViaProxy(
   file: File,
   parentId: string | null,
   thumbnail?: string | null,
@@ -310,6 +356,61 @@ export async function uploadFile(
   return request<FileDto>("/api/files", {
     method: "POST",
     body: fd,
+  });
+}
+
+interface PresignResp {
+  file_id: string;
+  upload_url: string;
+  expires_at: string;
+  method: "PUT";
+  required_headers: Record<string, string>;
+}
+
+async function uploadDirect(
+  file: File,
+  parentId: string | null,
+  thumbnail: string | null | undefined,
+  workspaceId: string | null | undefined,
+): Promise<FileDto> {
+  const pre = await request<PresignResp>("/api/files/upload-url", {
+    method: "POST",
+    json: {
+      name: file.name,
+      size: file.size,
+      content_type: file.type || undefined,
+      parent_id: parentId ?? undefined,
+      workspace_id: workspaceId ?? undefined,
+    },
+  });
+
+  // PUT bytes directly to the bucket. If this fails, abort the row so
+  // we don't leak an `uploading` placeholder forever.
+  try {
+    const putResp = await fetch(pre.upload_url, {
+      method: pre.method,
+      headers: pre.required_headers,
+      body: file,
+      mode: "cors",
+    });
+    if (!putResp.ok) {
+      throw new Error(`upload PUT failed: ${putResp.status}`);
+    }
+  } catch (e) {
+    await request<void>(`/api/files/${encodeURIComponent(pre.file_id)}/abort`, {
+      method: "POST",
+    }).catch(() => undefined);
+    throw e;
+  }
+
+  // Finalize. Thumbnail (if provided by the client) gets posted to a
+  // future endpoint; for now we accept the limitation that direct
+  // uploads ship without a client-side thumb. The server-side §5.4
+  // worker fills in real ones lazily.
+  void thumbnail;
+  return request<FileDto>(`/api/files/${encodeURIComponent(pre.file_id)}/complete`, {
+    method: "POST",
+    json: {},
   });
 }
 

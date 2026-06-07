@@ -95,7 +95,7 @@
 | 5.1 | Procedural thumbnails | ✅ done | P0 | client-rendered, type-tinted, all kinds |
 | 5.2 | Client-side image-thumbnail creation on upload (canvas → base64) | ✅ done | P1 | `generateThumbnail()`; stored on the file row, served back in list |
 | 5.3 | Client-side video-poster thumbnail on upload | ✅ done | P2 | `generateThumbnail` handles `video/mp4|webm|quicktime|ogg`: hidden `<video>` → seek to 10% → canvas → same encode pipeline. 5s timeouts on metadata/seek so broken codecs don't hang the queue |
-| 5.4 | Server-side thumbnail worker (sandboxed; images / PDFs / videos) | ⏸ v0.2+ | — | needs sandboxed image worker per security brief |
+| 5.4 | Server-side thumbnail worker (images in v0; PDFs / videos v0.2) | ✅ done (image slice) | P2 | migration 0010 adds `thumbs_state`. `ImageOnlyWorker` in `drive-storage::thumbnails` decodes via the `image` crate on a blocking thread → 3 PNG sizes (96/256/1024) at `thumbs/{id}/{size}.png`. Lazy generation kicked from `GET /api/files/{id}/thumb/{size}`. PDF + video decoders remain deferred to v0.2 (need a sandboxed subprocess per security brief). FileDto exposes `thumbs_state` + `thumb_urls`; `FileThumb` prefers server assets over the inline data URI when ready |
 | 5.5 | Thumbnail cache (CDN-cacheable URLs) | ⏸ v0.2+ | — | depends on 5.4 |
 
 ## 6 — Upload
@@ -196,7 +196,7 @@
 | 13.3 | HMAC self-mint for fs / memory | ✅ done | P0 | `SignedUrl::Token` variant |
 | 13.4 | `/raw/{token}` on user-content origin | ✅ done | P0 | drive-http::raw |
 | 13.5 | `GET /api/files/{id}/download` 302 → signed URL | ✅ done | P0 | drive-http::files |
-| 13.6 | `POST /api/files/{id}/upload-url` (direct-to-S3 client upload) | ⬜ todo | P2 | bypasses Drive for large uploads |
+| 13.6 | Direct-to-storage upload (presign + complete + abort) | ✅ done | P2 | migration 0009 adds `files.status` + `expected_size`. 3 endpoints under `/api/files/{upload-url,id/complete,id/abort}`. Quota committed at presign (so parallel uploads can't both fit). Adapters that can't presign return 409 → SPA falls back to proxy. SPA opts in at file ≥ 8 MiB via `VITE_DIRECT_UPLOAD=1`. 15-min PUT TTL. §13.6a (post-finalize magic-byte sniff) deferred to v0.2 |
 | 13.7 | Settings UI showing signed-URL TTL | ✅ done | P2 | new `Config::signed_url_ttl_secs` (env `DRIVE_SIGNED_URL_TTL_SECS`, default 300s, floor 30s) threaded through `Storage::signed_get`; `/api/about` returns it + `body_limit_mb`; Settings → Storage → Backend card surfaces both |
 
 ## 14 — Backend chassis (recap — already shipped)

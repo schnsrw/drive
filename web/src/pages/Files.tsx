@@ -1018,7 +1018,12 @@ function FileCard({
         kebab={<EntryKebab entry={{ kind: "file", file }} handlers={handlers} />}
       >
         <div style={{ height: 130, overflow: "hidden", borderBottom: "1px solid var(--line)" }}>
-          <FileThumb name={file.name} kind={kind} thumbnail={file.thumbnail} />
+          <FileThumb
+            name={file.name}
+            kind={kind}
+            thumbnail={file.thumbnail}
+            thumbUrls={file.thumb_urls}
+          />
         </div>
         <CardMeta name={file.name} kind={kind} sub={`${labelForKind(kind)} · ${relative(file.modified_at)}`} />
       </Card>
@@ -1258,6 +1263,7 @@ function ListView({
               last={last}
               kebab={<EntryKebab entry={entry} handlers={handlers} />}
               thumbnail={e.file.thumbnail}
+              thumbUrls={e.file.thumb_urls}
             />
           </EntryContextMenu>
         );
@@ -1280,6 +1286,7 @@ function ListRow({
   ghost,
   kebab,
   thumbnail,
+  thumbUrls,
   selected,
 }: {
   name: string;
@@ -1292,6 +1299,7 @@ function ListRow({
   ghost?: boolean;
   kebab?: React.ReactNode;
   thumbnail?: string | null;
+  thumbUrls?: { small: string; medium: string; large: string } | null;
   selected?: boolean;
 }) {
   return (
@@ -1331,7 +1339,7 @@ function ListRow({
             display: "flex",
           }}
         >
-          <FileThumb name={name} kind={kind} size="small" thumbnail={thumbnail} />
+          <FileThumb name={name} kind={kind} size="small" thumbnail={thumbnail} thumbUrls={thumbUrls} />
         </span>
         <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</span>
       </div>

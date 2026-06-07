@@ -60,6 +60,7 @@ export function FileThumb({
   kind,
   size = "tile",
   thumbnail,
+  thumbUrls,
 }: {
   name: string;
   kind: FileKind;
@@ -67,12 +68,22 @@ export function FileThumb({
   /** Real preview data URI from the file row, when available. Used in
    * preference to the procedural gradient for image cards. */
   thumbnail?: string | null;
+  /** Server-generated multi-size thumbnails (pipeline §5.4). Preferred
+   * over the inline data URI when present — they're sharper, type-aware,
+   * and cacheable. */
+  thumbUrls?: { small: string; medium: string; large: string } | null;
 }) {
   const tint = `var(--tint-${kind === "generic" ? "doc" : kind})`;
   const padPct = size === "tile" ? "18% 20%" : size === "small" ? "12% 16%" : "0";
 
+  // Pick the server-side asset when ready; fall back to the inline data
+  // URI; finally to the procedural gradient. Pipeline §5.4 spec.
+  const serverThumb =
+    thumbUrls && (size === "big" ? thumbUrls.large : size === "small" ? thumbUrls.small : thumbUrls.medium);
+  const effectiveThumb = serverThumb ?? thumbnail ?? null;
+
   if (kind === "img") {
-    if (thumbnail) {
+    if (effectiveThumb) {
       return (
         <div
           aria-label={`Preview of ${name}`}
@@ -80,7 +91,7 @@ export function FileThumb({
           style={{
             width: "100%",
             height: "100%",
-            backgroundImage: `url(${JSON.stringify(thumbnail)})`,
+            backgroundImage: `url(${JSON.stringify(effectiveThumb)})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
