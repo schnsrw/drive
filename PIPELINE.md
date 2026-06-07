@@ -33,7 +33,7 @@
 | 1.3 | Session cookie (`__Host-cd_sid` Secure HttpOnly SameSite=Lax) | ✅ done | P0 | server-side store in sqlite |
 | 1.4 | Argon2id passwords (OWASP min) | ✅ done | P0 | drive-auth |
 | 1.5 | Sign-out (cookie clear + 401 on session expiry → re-auth flow) | ✅ done | P0 | wired via AuthContext |
-| 1.6 | Caps-lock detection on password | ⬜ todo | P2 | small, easy |
+| 1.6 | Caps-lock detection on password | ✅ done | P2 | `Input` listens to `keydown`/`keyup`/`blur` and forwards the `getModifierState("CapsLock")` value; SignIn shows a one-line ⇪ warning under the field when on |
 | 1.7 | "Sign in with [SSO]" stub | ⏸ v0.2+ | — | OIDC is Phase 3 |
 | 1.8 | First-run admin-setup wizard (no env-only) | ✅ done | P1 | `Setup.tsx` flips on `/api/setup/status` → `needs_setup: true`; `/api/setup/admin` creates the first admin + their Personal workspace |
 
@@ -51,7 +51,7 @@
 | 2.8 | Cmd-K command palette (cmdk) | ✅ done | P1 | `CommandPalette` mounted in `Shell`. ⌘K/Ctrl-K from anywhere outside an input. Grouped results (Go to · Folders · Files · Notes), debounced parallel search over `/api/search` + `/api/notes/search`, workspace-scoped. Selecting a file fires `cd:open-file` (Files listens, opens preview); selecting a note fires `cd:open-note` (Notes listens, opens it) |
 | 2.9 | Top bar notifications bell | ✅ done | P2 | `NotificationsBell` reads recipient-facing recent activity |
 | 2.10 | Help (keyboard-shortcuts modal `?`) | ✅ done | P2 | `HelpModal`; `?` / `Shift-/` opens from anywhere outside an input |
-| 2.11 | Theme toggle | 🟡 wip | P2 | `ThemeToggle` component is in the tree, but `tokens.css` has no dark palette yet — toggling changes the attribute, nothing visible |
+| 2.11 | Theme toggle + dark palette | ✅ done | P2 | dark token set under `:root[data-theme="dark"]` mirrored under `@media (prefers-color-scheme: dark)` for the `system` mode. ThemeToggle cycles light → dark → system. Logo cloud uses `--paper` so the mark inverts cleanly across themes. Screenshot harness captures both themes (light primary, `*-dark.png` alongside) |
 
 ## 3 — File browser (main pane)
 
@@ -235,6 +235,8 @@ Spec: [[07-marketing-site]] + [[14-marketing-surface]]. Astro 5, multi-page docs
 | 15.12 | i18n | ⏸ v0.2+ | — | English-only; structure leaves room for astro-i18n |
 | 15.13 | Domain flip (drive.schnsrw.live → schnsrw.live apex / casualoffice.org) | ⬜ todo | P1 | OLD CNAME at `web/public/CNAME` is now orphaned (deploy artifact is `marketing/dist`). Add `marketing/public/CNAME` when DNS decided; set repo `MARKETING_SITE_URL` variable |
 | 15.13a | Dynamic `robots.txt` keyed to `ASTRO_SITE` | ✅ done | P1 | converted from static `public/robots.txt` to `src/pages/robots.txt.ts` |
+| 15.13b | `/sitemap.xml` convenience alias | ✅ done | P2 | `src/pages/sitemap.xml.ts` mirrors the @astrojs/sitemap index. Humans + legacy crawlers that hit `/sitemap.xml` by convention now resolve; spec-correct `/sitemap-index.xml` continues to ship |
+| 15.13c | `marketing/public/CNAME` for `drive.schnsrw.live` | ✅ done | P0 | the marketing artifact is the Pages deploy target now; CNAME pins the Pages domain in repo + `astro.config.mjs` defaults `ASTRO_SITE` to `https://drive.schnsrw.live` so sitemap URLs match the deploy |
 
 ---
 

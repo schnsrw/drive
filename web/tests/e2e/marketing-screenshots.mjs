@@ -32,10 +32,11 @@ const VIEWPORTS = {
   mobile: { width: 393, height: 852, scale: 2 },
 };
 
-// Drive's tokens.css doesn't (yet) define a dark palette — the ThemeToggle
-// just flips an attribute nothing reads. Capture light only until the
-// dark surface is real (tracked separately in PIPELINE.md polish list).
-const THEMES = ["light"];
+// Dark palette landed in §2.11 — both themes now flip real CSS variables.
+// The marketing gallery uses the light shots by default; dark variants
+// are emitted alongside as `<id>-dark.png` so the gallery can light them
+// up when a dark-mode preference is added.
+const THEMES = ["light", "dark"];
 
 /**
  * Each shot: an id (becomes the filename stem), a viewport key, a theme,
@@ -149,18 +150,22 @@ for (const shot of SHOTS) {
       viewport: { width: vp.width, height: vp.height },
       deviceScaleFactor: vp.scale,
       reducedMotion: "reduce", // avoid mid-animation captures
+      // Drive the `prefers-color-scheme` media query directly. tokens.css
+      // mirrors the dark palette under both `:root[data-theme="dark"]`
+      // AND `@media (prefers-color-scheme: dark) :root[data-theme="system"]`,
+      // so combining this with `theme="system"` in localStorage flips the
+      // whole UI without racing against the React ThemeToggle effect.
+      colorScheme: theme,
     });
-    // Seed theme + nuke any leftover demo state before the first navigation.
-    // Drive's ThemeToggle stores under `theme` (light | dark | system); we
-    // also pre-set the html attribute so the very first frame is correct.
-    await ctx.addInitScript((wanted) => {
+    // Also seed localStorage so the ThemeToggle's first render agrees.
+    // `system` is the cleanest setting — it defers to colorScheme above.
+    await ctx.addInitScript(() => {
       try {
-        window.localStorage.setItem("theme", wanted);
-        document.documentElement.setAttribute("data-theme", wanted);
+        window.localStorage.setItem("theme", "system");
       } catch {
         /* ignored */
       }
-    }, theme);
+    });
 
     const page = await ctx.newPage();
     try {
@@ -171,10 +176,13 @@ for (const shot of SHOTS) {
       continue;
     }
 
-    // While we ship one theme only, drop the suffix so filenames + gallery
-    // references stay stable. When dark lands, the suffix returns.
-    const suffix = THEMES.length > 1 ? `-${theme}` : "";
-    const out = `${OUT_DIR}/${shot.id}${suffix}.png`;
+    // Light is the canonical/primary asset → `<id>.png`. Dark variant
+    // ships alongside as `<id>-dark.png` so a media-query / theme-toggle
+    // on the marketing side can swap without filename churn.
+    const out =
+      theme === "light"
+        ? `${OUT_DIR}/${shot.id}.png`
+        : `${OUT_DIR}/${shot.id}-${theme}.png`;
     await page.screenshot({ path: out, fullPage: false });
     console.log(`→ ${out}`);
     await ctx.close();

@@ -142,6 +142,133 @@
   --z-tooltip:  1600;
 }
 
+/* Color — dark (warm ink). Mirrors the light palette key-for-key so
+   every consumer that already references `var(--paper)`, `var(--ink)`,
+   etc. flips automatically when the html element gains `data-theme="dark"`.
+   Selector list covers both the explicit user choice (`data-theme="dark"`)
+   and the system pref (`data-theme="system"` + OS in dark mode), which is
+   what the ThemeToggle writes. */
+:root[data-theme="dark"],
+.dark {
+  --ink:        #F3F1EA;
+  --ink-soft:   #D9D7D0;
+  --paper:      #0E0E10;
+  --card:       #16161A;
+  --muted:      #8E8E96;
+  --muted-2:    #6E6E76;
+  --accent:     #D6B574;
+  --accent-hover: #E0C386;
+  --accent-muted: rgba(214, 181, 116, 0.14);
+
+  --line:        rgba(243, 241, 234, 0.08);
+  --line-strong: rgba(243, 241, 234, 0.18);
+
+  --bg-hover:    rgba(243, 241, 234, 0.05);
+  --bg-row-hover: rgba(243, 241, 234, 0.03);
+  --bg-selected: rgba(214, 181, 116, 0.16);
+  --bg-subtle:   rgba(243, 241, 234, 0.04);
+  --bg-overlay:  rgba(0, 0, 0, 0.55);
+
+  --fg-onAccent: #14140F;
+
+  --success: #56B687;
+  --warning: #D6B574;
+  --danger:  #D87878;
+  --info:    #7DA2F0;
+
+  /* File-type tints stay subtle on the darker base. */
+  --tint-fold:    rgba(243, 241, 234, 0.04);
+  --tint-doc:     rgba(125, 162, 240, 0.10);
+  --tint-pdf:     rgba(216, 120, 120, 0.10);
+  --tint-sheet:   rgba(86, 182, 135, 0.10);
+  --tint-img:     transparent;
+  --tint-vid:     rgba(168, 132, 200, 0.10);
+  --tint-aud:     rgba(214, 181, 116, 0.12);
+  --tint-text:    rgba(243, 241, 234, 0.05);
+  --tint-md:      rgba(243, 241, 234, 0.05);
+  --tint-generic: rgba(243, 241, 234, 0.04);
+
+  --ic-fold:    var(--ink);
+  --ic-doc:     #7DA2F0;
+  --ic-img:     #86CCA0;
+  --ic-pdf:     #E08A8A;
+  --ic-vid:     #B89BD2;
+  --ic-sheet:   #5BCB95;
+  --ic-aud:     #D6B574;
+  --ic-text:    var(--ink);
+  --ic-md:      var(--ink);
+  --ic-generic: var(--muted);
+
+  --shadow:        0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 30px rgba(0, 0, 0, 0.45);
+  --shadow-hover:  0 2px 4px rgba(0, 0, 0, 0.32), 0 16px 44px rgba(0, 0, 0, 0.55);
+  --shadow-md:     0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg:     0 10px 30px rgba(0, 0, 0, 0.5);
+  --shadow-xl:     0 30px 80px rgba(0, 0, 0, 0.7);
+  --shadow-button: 0 10px 24px rgba(0, 0, 0, 0.5);
+
+  color-scheme: dark;
+}
+
+/* When the user picks "system", honour the OS preference. The toggle
+   removes the data-theme attribute entirely in that mode, so we fall
+   through to this @media block. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]),
+  :root[data-theme="system"] {
+    --ink:        #F3F1EA;
+    --ink-soft:   #D9D7D0;
+    --paper:      #0E0E10;
+    --card:       #16161A;
+    --muted:      #8E8E96;
+    --muted-2:    #6E6E76;
+    --accent:     #D6B574;
+    --accent-hover: #E0C386;
+    --accent-muted: rgba(214, 181, 116, 0.14);
+
+    --line:        rgba(243, 241, 234, 0.08);
+    --line-strong: rgba(243, 241, 234, 0.18);
+
+    --bg-hover:    rgba(243, 241, 234, 0.05);
+    --bg-row-hover: rgba(243, 241, 234, 0.03);
+    --bg-selected: rgba(214, 181, 116, 0.16);
+    --bg-subtle:   rgba(243, 241, 234, 0.04);
+    --bg-overlay:  rgba(0, 0, 0, 0.55);
+
+    --fg-onAccent: #14140F;
+
+    --success: #56B687;
+    --warning: #D6B574;
+    --danger:  #D87878;
+    --info:    #7DA2F0;
+
+    --tint-fold:    rgba(243, 241, 234, 0.04);
+    --tint-doc:     rgba(125, 162, 240, 0.10);
+    --tint-pdf:     rgba(216, 120, 120, 0.10);
+    --tint-sheet:   rgba(86, 182, 135, 0.10);
+    --tint-img:     transparent;
+    --tint-vid:     rgba(168, 132, 200, 0.10);
+    --tint-aud:     rgba(214, 181, 116, 0.12);
+    --tint-text:    rgba(243, 241, 234, 0.05);
+    --tint-md:      rgba(243, 241, 234, 0.05);
+    --tint-generic: rgba(243, 241, 234, 0.04);
+
+    --ic-doc:     #7DA2F0;
+    --ic-img:     #86CCA0;
+    --ic-pdf:     #E08A8A;
+    --ic-vid:     #B89BD2;
+    --ic-sheet:   #5BCB95;
+
+    --shadow:        0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 30px rgba(0, 0, 0, 0.45);
+    --shadow-hover:  0 2px 4px rgba(0, 0, 0, 0.32), 0 16px 44px rgba(0, 0, 0, 0.55);
+    --shadow-md:     0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lg:     0 10px 30px rgba(0, 0, 0, 0.5);
+    --shadow-xl:     0 30px 80px rgba(0, 0, 0, 0.7);
+    --shadow-button: 0 10px 24px rgba(0, 0, 0, 0.5);
+
+    color-scheme: dark;
+  }
+}
+
 /* Tailwind v4 @theme bridge */
 @theme {
   --color-ink:        var(--ink);

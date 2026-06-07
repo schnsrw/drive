@@ -24,7 +24,10 @@ export function Logo({ size = 38, className }: { size?: number; className?: stri
       </defs>
       <g clipPath="url(#cd-mark-clip)">
         <rect width="38" height="38" fill="currentColor" />
-        <g fill="var(--mark-fg, #F2F0EA)">
+        {/* Cloud paints in the "paper" colour so it stays opposite the
+            square's currentColor whichever theme is active: light mode →
+            dark square, cream cloud; dark mode → cream square, dark cloud. */}
+        <g fill="var(--mark-fg, var(--paper, #F2F0EA))">
           <circle cx="12" cy="22" r="5" />
           <circle cx="26" cy="22" r="5" />
           <circle cx="19" cy="15" r="7.5" />

@@ -12,6 +12,7 @@ export function SignIn() {
   const { signIn } = useAuth();
   const [username, setUsername] = useState(DEMO_MODE ? DEMO_USERNAME : "");
   const [password, setPassword] = useState(DEMO_MODE ? DEMO_PASSWORD : "");
+  const [capsOn, setCapsOn] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shake, setShake] = useState(false);
@@ -137,7 +138,24 @@ export function SignIn() {
             invalid={error !== null}
             value={password}
             onChange={(v) => setPassword(v)}
+            onCapsLockChange={setCapsOn}
           />
+          {capsOn && (
+            <div
+              role="status"
+              style={{
+                marginTop: 2,
+                fontSize: "var(--text-xs)",
+                color: "var(--warning)",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <span aria-hidden="true" style={{ fontSize: 10 }}>⇪</span>
+              Caps Lock is on.
+            </div>
+          )}
         </div>
 
         {error && (
@@ -217,6 +235,7 @@ function Input({
   invalid,
   value,
   onChange,
+  onCapsLockChange,
 }: {
   type: "text" | "password";
   name: string;
@@ -227,6 +246,10 @@ function Input({
   invalid?: boolean;
   value: string;
   onChange: (v: string) => void;
+  /** Fires when the keyboard's Caps Lock modifier flips while this input
+   * has focus. Used by the sign-in form to surface a one-line warning
+   * under the password field — silent for other inputs. */
+  onCapsLockChange?: (on: boolean) => void;
 }) {
   return (
     <input
@@ -239,6 +262,8 @@ function Input({
       aria-invalid={invalid || undefined}
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      onKeyDown={(e) => onCapsLockChange?.(e.getModifierState("CapsLock"))}
+      onKeyUp={(e) => onCapsLockChange?.(e.getModifierState("CapsLock"))}
       style={{
         width: "100%",
         padding: "12px 14px",
@@ -258,6 +283,7 @@ function Input({
       onBlur={(e) => {
         e.currentTarget.style.borderColor = invalid ? "var(--danger)" : "var(--line)";
         e.currentTarget.style.boxShadow = "";
+        onCapsLockChange?.(false);
       }}
     />
   );
