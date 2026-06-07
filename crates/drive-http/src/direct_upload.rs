@@ -32,7 +32,8 @@ const PRESIGN_TTL: Duration = Duration::from_secs(15 * 60);
 /// 8 MiB — the SPA opts into direct upload at this threshold. We
 /// don't enforce it server-side (the proxy path keeps working at any
 /// size) but we *do* document it so the SPA's branching stays in sync.
-pub const DIRECT_UPLOAD_THRESHOLD_BYTES: u64 = 8 * 1024 * 1024;
+#[allow(dead_code)]
+pub(crate) const DIRECT_UPLOAD_THRESHOLD_BYTES: u64 = 8 * 1024 * 1024;
 
 #[derive(Debug)]
 pub(crate) enum DirectError {

@@ -20,7 +20,7 @@ use axum::{
 use bytes::Bytes;
 use drive_auth::AuthSession;
 use drive_db::{FileRepo, ThumbsState};
-use drive_storage::{FitMode, ImageOnlyWorker, ThumbSize, ThumbnailError, ThumbnailKind};
+use drive_storage::{ImageOnlyWorker, ThumbSize, ThumbnailError, ThumbnailKind};
 use futures::TryStreamExt;
 use serde::Serialize;
 use std::time::Duration;

@@ -240,34 +240,34 @@ Spec: [[07-marketing-site]] + [[14-marketing-surface]]. Astro 5, multi-page docs
 
 ---
 
-## Outstanding v0 work (truly remaining after the 2026-06-08 audit)
+## Outstanding v0 work (after the 2026-06-08 audit + subsequent shipping passes)
 
-The "build order" section below is the running queue. Items above marked **⬜ todo** or **🟡 wip** are the only ones not yet shipped — listed here in priority order so the next "proceed ahead" picks the right thing.
+Every P0/P1/P2 row in the tables above is now ✅ done or ⏸ v0.2+. The single residual is a config / decision item, not code:
 
 | Priority | Surface | Item | Effort |
 |---|---|---|---|
-| **P1** | 2.8 | Real Cmd-K command palette (cmdk) — files + notes + nav | M |
-| **P1** | 15.13 | Domain flip + final CNAME (needs DNS decision) | XS |
-| **P2** | 1.6 | Caps-lock detection on the password field | XS |
-| **P2** | 2.11 | Dark palette in `tokens.css` so the theme toggle is visible | S |
-| **P2** | 5.3 | Client-side video-poster thumbnail on upload | S |
-| **P2** | 6.6 | Concurrent upload cap (client-side 4-at-a-time queue) | S |
-| **P2** | 13.6 | `POST /api/files/{id}/upload-url` (direct-to-S3 path) | M |
-| **P2** | 13.7 | Settings UI surfacing signed-URL TTL | XS |
+| **P1** | 15.13 | Domain flip + final CNAME (needs DNS decision — `drive.schnsrw.live` works today; flip to `schnsrw.live` apex / `casualoffice.org` when the call is made) | XS |
 
-Everything else outstanding is either a 🟦 stub waiting on its enabling feature (workspace invitations §8.3, role tiers §8.5, etc.) or explicitly **⏸ v0.2+**.
+Everything else is either a 🟦 stub waiting on its enabling feature (workspace invitations §8.3, RBAC role tiers §8.5, OIDC sign-in §1.7) or explicitly **⏸ v0.2+** with the design parked in a research brief.
+
+---
+
+## Phase 3 — what's already specced
+
+When v0 has been dogfooded at scale, the next contributor can pick up any of these without re-litigating the design:
+
+| Brief | What it covers |
+|---|---|
+| [[12-oidc]] | Multi-tenant SSO via OIDC. Authorization Code Flow + PKCE, in-process ID-token validation, Drive-side sessions. Maps onto §1.7. |
+| [[13-ms365-federation]] | Office Online client federation. Proof-key RSA validation, served discovery doc, opt-in. Wakes the dormant hook in `drive-wopi`. |
+| [[14-presence]] | Drive-shell ambient awareness (avatar stack + file-row dot + quiet toast). SSE one-channel-per-workspace, in-process hub with a Redis escape hatch. NOT in-editor cursors. |
+| [[15-sandboxed-thumb-worker]] | PDF + video thumbnails in a `drive-thumb-worker` subprocess. seccomp + rlimits + privilege drop. Promotes §5.4 from "image slice done" to full coverage. |
+| §13.6a | Post-finalize magic-byte sniff on direct uploads — the residual hook from the §13.6 spec. Worth doing before a multi-tenant prod deploy. |
 
 ---
 
 ## Build order (next passes)
 
-Execution top-down by P-band, then by surface affinity (UI vs backend bursts).
-
-1. **Cmd-K command palette** (§2.8) — biggest unshipped P1 visible to every user. `cmdk` is already a dependency; needs the Palette component, search routing, keyboard shortcuts.
-2. **Dark palette in tokens** (§2.11) — small visual win that unblocks meaningful dark screenshots for the marketing site too.
-3. **Caps-lock detection** (§1.6) — micro-improvement on sign-in.
-4. **Client video-poster + concurrent upload cap** (§5.3 + §6.6) — upload polish bundle.
-5. **Direct-to-S3 upload path** (§13.6) — only matters once someone has a real large-file workload; ship after Cmd-K.
-6. **Domain flip + CNAME** (§15.13) — pure DNS coordination once the casualoffice.org decision lands.
+The v0 queue is empty. Phase 3 starts with whichever brief above the operator picks first — typically **§12 OIDC** because it unlocks every multi-tenant story downstream.
 
 User: if anything's missing, add it. Default execution is top-down.

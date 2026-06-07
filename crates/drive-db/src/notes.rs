@@ -276,8 +276,7 @@ impl<'a> NotesRepo<'a> {
         if titles_lower.is_empty() {
             return Ok(std::collections::HashMap::new());
         }
-        let placeholders = std::iter::repeat("?")
-            .take(titles_lower.len())
+        let placeholders = std::iter::repeat_n("?", titles_lower.len())
             .collect::<Vec<_>>()
             .join(",");
         let sql = format!(
@@ -549,7 +548,11 @@ mod tests {
 
     #[test]
     fn parse_caps_at_256() {
-        let body: String = (0..400).map(|i| format!("[[link{i}]] ")).collect();
+        let body = (0..400).fold(String::new(), |mut acc, i| {
+            use std::fmt::Write;
+            let _ = write!(&mut acc, "[[link{i}]] ");
+            acc
+        });
         assert_eq!(parse_wiki_links(&body).len(), 256);
     }
 

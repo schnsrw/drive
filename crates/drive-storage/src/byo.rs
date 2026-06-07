@@ -315,7 +315,7 @@ mod tests {
         };
         validate_shape(&cfg).unwrap();
 
-        cfg.bucket = "".into();
+        cfg.bucket = String::new();
         assert!(validate_shape(&cfg).is_err());
 
         cfg.bucket = "b".into();

@@ -402,7 +402,7 @@ async fn patch_note(
 
     if body.body.is_some() {
         let delta =
-            (body.body.as_ref().map(String::len).unwrap_or(0) as i64) - (current.body.len() as i64);
+            (body.body.as_ref().map_or(0, String::len) as i64) - (current.body.len() as i64);
         AuditRepo::emit(
             &s.db,
             NewAuditEvent {

@@ -119,6 +119,12 @@ struct TestBody {
 
 #[derive(Serialize)]
 #[serde(tag = "kind", rename_all = "lowercase")]
+// `Default` is empty by design — it represents "use the server's default
+// storage adapter" and carries no per-workspace config. `Byo` carries the
+// whole presented BYO row. Boxing wouldn't help: the enum is built once per
+// request and serialised straight out as JSON; an extra heap indirection
+// per field would just add noise.
+#[allow(clippy::large_enum_variant)]
 pub(crate) enum StorageStatus {
     Default,
     Byo {
