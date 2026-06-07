@@ -1,0 +1,192 @@
+---
+/**
+ * /demo — wraps the existing Drive SPA built in demo mode.
+ *
+ * Build pipeline (.github/workflows/pages.yml):
+ *   1. cd web && VITE_DEMO_MODE=true pnpm build
+ *   2. cp -r web/dist marketing/public/demo-app
+ *
+ * The page is a slim host: a single sticky bar (Logo · Reset · Back to
+ * docs) and an iframe that loads the SPA bundle. The iframe boundary
+ * gives the SPA its own routing stack — clicks inside the demo don't
+ * navigate the Astro shell.
+ *
+ * noindex: it's the live app, not content. robots.txt also disallows.
+ */
+import Base from "../../layouts/Base.astro";
+import Logo from "../../components/Logo.astro";
+import ArrowLeft from "../../components/icons/ArrowLeft.astro";
+import RotateCw from "../../components/icons/RotateCw.astro";
+---
+
+<Base
+  title="Live demo"
+  description="Try Casual Drive in your browser — a seeded admin account, fake files, zero real-world consequences."
+  noindex={true}
+  bare={true}
+>
+  <noscript>
+    <div class="demo-noscript">
+      The demo needs JavaScript to run. The marketing site itself doesn't —
+      <a href="/">go back home</a> or <a href="/docs/install">read the install
+      docs</a>.
+    </div>
+  </noscript>
+
+  <header class="demo-bar">
+    <a href="/" class="demo-brand" aria-label="Back to landing">
+      <Logo size={22} />
+      <span class="demo-brand-text">
+        Casual Drive <span class="demo-tag">· Demo</span>
+      </span>
+    </a>
+    <div class="demo-actions">
+      <button type="button" class="demo-btn" data-demo-reset>
+        <RotateCw size={14} />
+        <span>Reset</span>
+      </button>
+      <a href="/docs/install" class="demo-btn demo-btn-primary">
+        <ArrowLeft size={14} />
+        <span>Install instead</span>
+      </a>
+    </div>
+  </header>
+
+  <iframe
+    src="/demo-app/index.html"
+    title="Casual Drive demo"
+    class="demo-frame"
+    loading="eager"
+    allow="clipboard-write"
+  ></iframe>
+
+  <script>
+    // "Reset" wipes demo localStorage keys + reloads the iframe.
+    const btn = document.querySelector<HTMLButtonElement>("[data-demo-reset]");
+    const frame = document.querySelector<HTMLIFrameElement>(".demo-frame");
+
+    btn?.addEventListener("click", () => {
+      try {
+        const keys = Object.keys(localStorage).filter((k) =>
+          k.startsWith("cd-"),
+        );
+        keys.forEach((k) => localStorage.removeItem(k));
+        // Cross-origin localStorage clear isn't possible directly; the SPA
+        // bundle ships on the same origin so this works. We also reload
+        // the iframe to re-seed the demo from scratch.
+      } catch {
+        /* localStorage unavailable */
+      }
+      if (frame) frame.src = frame.src;
+    });
+  </script>
+</Base>
+
+<style>
+  .demo-bar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    min-height: 52px;
+    padding: 0 var(--space-4);
+    background: color-mix(in srgb, var(--paper) 92%, transparent);
+    backdrop-filter: saturate(180%) blur(10px);
+    -webkit-backdrop-filter: saturate(180%) blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+
+  @media (min-width: 640px) {
+    .demo-bar {
+      padding: 0 var(--space-6);
+    }
+  }
+
+  .demo-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-weight: 600;
+    font-size: var(--text-sm);
+  }
+
+  .demo-tag {
+    color: var(--muted-2);
+    font-weight: 500;
+  }
+
+  .demo-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .demo-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 36px;
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    color: var(--ink-soft);
+    background: transparent;
+    border: 1px solid var(--line);
+    transition: background var(--dur-fast) var(--ease);
+    cursor: pointer;
+  }
+
+  .demo-btn:hover {
+    background: var(--bg-hover);
+    color: var(--ink);
+  }
+
+  .demo-btn-primary {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+
+  .demo-btn-primary:hover {
+    background: var(--ink-soft);
+    color: var(--paper);
+  }
+
+  .demo-btn-primary span {
+    display: none;
+  }
+
+  @media (min-width: 640px) {
+    .demo-btn-primary span {
+      display: inline;
+    }
+    .demo-btn {
+      padding: 0 var(--space-4);
+    }
+  }
+
+  .demo-frame {
+    display: block;
+    width: 100%;
+    height: calc(100dvh - 52px);
+    border: 0;
+    background: var(--paper);
+  }
+
+  .demo-noscript {
+    padding: var(--space-8);
+    text-align: center;
+    background: var(--accent-muted);
+    color: var(--ink);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .demo-noscript a {
+    color: var(--accent-strong);
+    text-decoration: underline;
+  }
+</style>

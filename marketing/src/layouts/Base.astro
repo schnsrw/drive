@@ -1,0 +1,134 @@
+---
+/**
+ * Base layout — every page extends this.
+ * Spec: docs/research/07-marketing-site.md (SEO checklist + perf budget),
+ * docs/ux/14-marketing-surface.md (global chrome).
+ */
+import "../styles/fonts.css";
+import "../styles/tokens.css";
+import "../styles/base.css";
+import Nav from "../components/Nav.astro";
+import Footer from "../components/Footer.astro";
+
+export interface Props {
+  title: string;
+  description: string;
+  /** Defaults to <site>/<pathname>. Always absolute. */
+  canonical?: string;
+  /** Open Graph image; falls back to the default 1200×630 social card. */
+  ogImage?: string;
+  /** Set to true on pages we don't want crawled (e.g. /demo). */
+  noindex?: boolean;
+  /** Optional JSON-LD blob — pass the object, not a string. */
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+  /** Marketing pages render the chrome; /demo renders bare. */
+  bare?: boolean;
+}
+
+const {
+  title,
+  description,
+  canonical,
+  ogImage = "/og/default.png",
+  noindex = false,
+  jsonLd,
+  bare = false,
+} = Astro.props;
+
+const fullTitle = title.endsWith("Casual Drive") ? title : `${title} · Casual Drive`;
+const siteUrl = Astro.site?.toString().replace(/\/$/, "") ?? "";
+const path = Astro.url.pathname.replace(/\/$/, "") || "/";
+const canonicalUrl = canonical ?? `${siteUrl}${path}`;
+const ogUrl = ogImage.startsWith("http") ? ogImage : `${siteUrl}${ogImage}`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="theme-color" content="#fbf9f4" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0e0e10" media="(prefers-color-scheme: dark)" />
+
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+
+    {/* Robots */}
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    {!noindex && <meta name="robots" content="index, follow, max-image-preview:large" />}
+
+    {/* Open Graph */}
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogUrl} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:site_name" content="Casual Drive" />
+
+    {/* Twitter */}
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogUrl} />
+
+    {/* Icons */}
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    {/* Preload the Inter weights used above the fold */}
+    <link
+      rel="preload"
+      href="/fonts/inter-variable.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
+    {/* Sitemap discovery for crawlers that read it */}
+    <link rel="sitemap" type="application/xml" href="/sitemap-index.xml" />
+
+    {/* JSON-LD */}
+    {
+      jsonLd && (
+        <script
+          is:inline
+          type="application/ld+json"
+          set:html={JSON.stringify(jsonLd)}
+        />
+      )
+    }
+
+    {/* Theme bootstrap — runs before paint to avoid FOUC on dark mode.
+        Reads localStorage, falls back to prefers-color-scheme. */}
+    <script is:inline>
+      (function () {
+        try {
+          var stored = localStorage.getItem("cd-marketing-theme");
+          var dark =
+            stored === "dark" ||
+            (!stored &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          if (dark) document.documentElement.classList.add("dark");
+        } catch (e) {
+          /* localStorage unavailable — fall through to light */
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <a href="#main" class="skip-link">Skip to content</a>
+
+    {!bare && <Nav />}
+
+    <main id="main">
+      <slot />
+    </main>
+
+    {!bare && <Footer />}
+  </body>
+</html>

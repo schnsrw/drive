@@ -1,0 +1,100 @@
+---
+import ArrowRight from "./icons/ArrowRight.astro";
+import Star from "./icons/Star.astro";
+import GithubIcon from "./icons/Github.astro";
+---
+
+<section class="cta cv-auto">
+  <div class="container">
+    <div class="cta-card">
+      <h2 class="cta-title">Take it for a spin.</h2>
+      <p class="cta-body">
+        The demo runs in your browser with a seeded admin account. Nothing
+        you do leaves your tab. When you've seen enough, the install
+        instructions are one click away.
+      </p>
+      <div class="cta-actions">
+        <a href="/demo" class="btn btn-primary btn-lg">
+          Open the demo
+          <ArrowRight size={16} />
+        </a>
+        <a href="/docs/install" class="btn btn-secondary btn-lg">
+          Install instructions
+        </a>
+        <a
+          href="https://github.com/schnsrw/casual-drive"
+          class="btn btn-secondary btn-lg"
+          rel="noopener external"
+          target="_blank"
+        >
+          <Star size={16} /> Star on GitHub
+          <GithubIcon size={16} />
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .cta {
+    padding-block: var(--space-12) var(--space-16);
+  }
+
+  .cta-card {
+    text-align: center;
+    padding: var(--space-12) var(--space-6);
+    background:
+      radial-gradient(
+        ellipse 70% 50% at 50% 0%,
+        var(--accent-muted) 0%,
+        transparent 70%
+      ),
+      var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-2xl);
+  }
+
+  @media (min-width: 768px) {
+    .cta-card {
+      padding: var(--space-16) var(--space-10);
+    }
+  }
+
+  .cta-title {
+    font-size: var(--text-3xl);
+    letter-spacing: -0.025em;
+    margin-bottom: var(--space-3);
+  }
+
+  @media (min-width: 768px) {
+    .cta-title {
+      font-size: var(--text-4xl);
+    }
+  }
+
+  .cta-body {
+    color: var(--muted);
+    max-width: 480px;
+    margin: 0 auto var(--space-8);
+    font-size: var(--text-md);
+    line-height: 1.6;
+  }
+
+  .cta-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    align-items: stretch;
+    max-width: 360px;
+    margin: 0 auto;
+  }
+
+  @media (min-width: 640px) {
+    .cta-actions {
+      flex-direction: row;
+      max-width: none;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+  }
+</style>

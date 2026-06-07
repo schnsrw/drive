@@ -1,0 +1,354 @@
+---
+/**
+ * Top nav. Desktop: sticky bar with hover dropdown for Docs.
+ * Mobile (< 768): logo + hamburger → vaul-style sheet.
+ *
+ * Native <details>/<summary> for the mobile drawer keeps it zero-JS for
+ * the open/close primitive; a tiny script enhances focus + Esc.
+ */
+import Logo from "./Logo.astro";
+import ThemeToggle from "./ThemeToggle.astro";
+import GithubIcon from "./icons/Github.astro";
+import MenuIcon from "./icons/Menu.astro";
+import XIcon from "./icons/X.astro";
+
+const path = Astro.url.pathname;
+const isActive = (href: string) =>
+  href === "/" ? path === "/" : path.startsWith(href);
+---
+
+<header class="nav-root">
+  <div class="container nav-row">
+    <a href="/" class="nav-brand" aria-label="Casual Drive — home">
+      <Logo size={28} />
+      <span class="nav-brand-text">Casual Drive</span>
+    </a>
+
+    <nav class="nav-desktop" aria-label="Primary">
+      <details class="nav-docs">
+        <summary class:list={["nav-link", isActive("/docs") && "active"]}>
+          Docs
+          <svg
+            aria-hidden="true"
+            width="11"
+            height="11"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </summary>
+        <ul class="nav-dropdown" role="menu">
+          <li><a href="/docs/install" class="nav-dropdown-link">Install</a></li>
+          <li><a href="/docs/configuration" class="nav-dropdown-link">Configuration</a></li>
+          <li><a href="/docs/architecture" class="nav-dropdown-link">Architecture</a></li>
+          <li><a href="/docs/contributing" class="nav-dropdown-link">Contributing</a></li>
+        </ul>
+      </details>
+      <a href="/screenshots" class:list={["nav-link", isActive("/screenshots") && "active"]}>
+        Screenshots
+      </a>
+      <a href="/demo" class:list={["nav-link", isActive("/demo") && "active"]}>
+        Demo
+      </a>
+      <a
+        href="https://github.com/schnsrw/casual-drive"
+        class="nav-link nav-link-icon"
+        rel="noopener external"
+        target="_blank"
+        aria-label="View source on GitHub"
+      >
+        <GithubIcon size={16} />
+        <span>GitHub</span>
+      </a>
+      <ThemeToggle />
+    </nav>
+
+    <details class="nav-mobile-root">
+      <summary class="nav-hamburger" aria-label="Open menu">
+        <span class="nav-hamburger-open"><MenuIcon size={20} /></span>
+        <span class="nav-hamburger-close"><XIcon size={20} /></span>
+      </summary>
+      <div class="nav-mobile-panel">
+        <div class="nav-mobile-group-label">Docs</div>
+        <a href="/docs/install" class="nav-mobile-link">Install</a>
+        <a href="/docs/configuration" class="nav-mobile-link">Configuration</a>
+        <a href="/docs/architecture" class="nav-mobile-link">Architecture</a>
+        <a href="/docs/contributing" class="nav-mobile-link">Contributing</a>
+        <div class="nav-mobile-sep" role="presentation"></div>
+        <a href="/screenshots" class="nav-mobile-link">Screenshots</a>
+        <a href="/demo" class="nav-mobile-link nav-mobile-link-cta">Try the demo</a>
+        <a
+          href="https://github.com/schnsrw/casual-drive"
+          class="nav-mobile-link"
+          rel="noopener external"
+          target="_blank"
+        >
+          <GithubIcon size={16} /> GitHub
+        </a>
+        <div class="nav-mobile-sep" role="presentation"></div>
+        <div class="nav-mobile-theme">
+          <span>Theme</span>
+          <ThemeToggle />
+        </div>
+      </div>
+    </details>
+  </div>
+</header>
+
+<script>
+  // Close the mobile drawer on Esc + when a link inside it is clicked.
+  // Lightweight progressive enhancement on top of <details>.
+  const root = document.querySelector<HTMLDetailsElement>(".nav-mobile-root");
+  if (root) {
+    root.addEventListener("click", (e) => {
+      const t = e.target as HTMLElement;
+      if (t.closest("a")) root.removeAttribute("open");
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") root.removeAttribute("open");
+    });
+  }
+
+  // Close the Docs dropdown when a link inside is clicked.
+  const docs = document.querySelector<HTMLDetailsElement>(".nav-docs");
+  if (docs) {
+    docs.addEventListener("click", (e) => {
+      const t = e.target as HTMLElement;
+      if (t.closest("a")) docs.removeAttribute("open");
+    });
+  }
+</script>
+
+<style>
+  .nav-root {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: color-mix(in srgb, var(--paper) 88%, transparent);
+    backdrop-filter: saturate(180%) blur(10px);
+    -webkit-backdrop-filter: saturate(180%) blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .nav-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 64px;
+    gap: var(--space-4);
+  }
+
+  .nav-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-weight: 600;
+    font-size: var(--text-md);
+    color: var(--ink);
+  }
+
+  .nav-brand-text {
+    letter-spacing: -0.01em;
+  }
+
+  /* ── Desktop nav ─────────────────────────────────────────────────── */
+  .nav-desktop {
+    display: none;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  @media (min-width: 768px) {
+    .nav-desktop {
+      display: flex;
+    }
+    .nav-mobile-root {
+      display: none;
+    }
+  }
+
+  .nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    min-height: 38px;
+    border-radius: var(--radius-sm);
+    color: var(--ink-soft);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    transition: background var(--dur-fast) var(--ease);
+    user-select: none;
+  }
+
+  .nav-link:hover {
+    background: var(--bg-hover);
+    color: var(--ink);
+  }
+
+  .nav-link.active {
+    color: var(--ink);
+    background: var(--bg-hover);
+  }
+
+  /* ── Docs dropdown via <details> ─────────────────────────────────── */
+  .nav-docs {
+    position: relative;
+  }
+
+  .nav-docs summary {
+    list-style: none;
+    cursor: pointer;
+  }
+
+  .nav-docs summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .nav-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 200px;
+    margin: 0;
+    padding: var(--space-2);
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-hover);
+    list-style: none;
+    z-index: 60;
+  }
+
+  .nav-dropdown-link {
+    display: block;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    color: var(--ink-soft);
+  }
+
+  .nav-dropdown-link:hover {
+    background: var(--bg-hover);
+    color: var(--ink);
+  }
+
+  /* ── Mobile nav ──────────────────────────────────────────────────── */
+  .nav-mobile-root {
+    position: relative;
+  }
+
+  .nav-hamburger {
+    list-style: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--ink);
+  }
+
+  .nav-hamburger::-webkit-details-marker {
+    display: none;
+  }
+
+  .nav-hamburger:hover {
+    background: var(--bg-hover);
+  }
+
+  .nav-hamburger-close {
+    display: none;
+  }
+
+  .nav-mobile-root[open] .nav-hamburger-open {
+    display: none;
+  }
+
+  .nav-mobile-root[open] .nav-hamburger-close {
+    display: inline-flex;
+  }
+
+  .nav-mobile-panel {
+    position: fixed;
+    inset: 64px 0 0 0;
+    padding: var(--space-6);
+    background: var(--paper);
+    border-top: 1px solid var(--line);
+    z-index: 40;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    animation: slide-down var(--dur-slow) var(--ease);
+  }
+
+  @keyframes slide-down {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .nav-mobile-group-label {
+    font-size: var(--text-xs);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted-2);
+    font-weight: 600;
+    padding: var(--space-3) var(--space-3) var(--space-1);
+  }
+
+  .nav-mobile-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 48px;
+    padding: var(--space-3) var(--space-3);
+    border-radius: var(--radius-md);
+    font-size: var(--text-md);
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .nav-mobile-link:hover,
+  .nav-mobile-link:focus-visible {
+    background: var(--bg-hover);
+  }
+
+  .nav-mobile-link-cta {
+    background: var(--ink);
+    color: var(--paper);
+    margin-top: var(--space-2);
+  }
+
+  .nav-mobile-link-cta:hover {
+    background: var(--ink-soft);
+    color: var(--paper);
+  }
+
+  .nav-mobile-sep {
+    height: 1px;
+    background: var(--line);
+    margin: var(--space-3) 0;
+  }
+
+  .nav-mobile-theme {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+    color: var(--muted);
+  }
+</style>

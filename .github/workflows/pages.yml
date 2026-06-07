@@ -1,12 +1,21 @@
-name: Deploy demo to GitHub Pages
+name: Deploy marketing site + demo to GitHub Pages
 
-# Built artifact is the SPA in demo-mode (VITE_DEMO_MODE=1) — no backend.
-# Served at drive.schnsrw.live (custom domain). The CNAME ships in
-# web/public/CNAME so Vite copies it into dist/ verbatim.
+# Builds the Casual Drive marketing site (Astro) with the SPA bundled
+# under /demo-app/. Replaces the prior SPA-only deploy — landing pages,
+# docs, screenshots, AND the in-memory demo ship from the same artifact.
+#
+# Triggers on push to main when marketing/, web/, or this workflow change.
+# Manual dispatch supported.
+#
+# Spec: docs/research/07-marketing-site.md, docs/ux/14-marketing-surface.md.
 
 on:
   push:
     branches: [main]
+    paths:
+      - "marketing/**"
+      - "web/**"
+      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -21,29 +30,72 @@ concurrency:
 
 jobs:
   build:
-    name: build demo bundle
+    name: build marketing + demo
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with: { version: 9 }
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: web/pnpm-lock.yaml
-      - working-directory: web
+          cache-dependency-path: |
+            web/pnpm-lock.yaml
+            marketing/pnpm-lock.yaml
+
+      # ── Self-hosted Inter (not committed; see marketing/public/fonts/) ──
+      - name: Fetch Inter variable fonts
+        run: |
+          mkdir -p marketing/public/fonts
+          curl -fsSL --retry 3 \
+            https://rsms.me/inter/font-files/InterVariable.woff2 \
+            -o marketing/public/fonts/inter-variable.woff2
+          curl -fsSL --retry 3 \
+            https://rsms.me/inter/font-files/InterVariable-Italic.woff2 \
+            -o marketing/public/fonts/inter-italic-variable.woff2
+
+      # ── 1. Build the SPA in demo mode under /demo-app/ ─────────────────
+      - name: Install SPA deps
+        working-directory: web
         run: pnpm install --frozen-lockfile
-      - name: Build SPA in demo mode
+
+      - name: Build SPA (demo mode, base=/demo-app/)
         working-directory: web
         env:
           VITE_DEMO_MODE: "1"
           VITE_DEMO_BANNER: Demo build — data is in-memory only, resets on reload.
+          # Demo lives under the marketing site at /demo-app/. Vite needs
+          # this so asset URLs in the built index.html are correct.
+          VITE_BASE: "/demo-app/"
         run: pnpm build
+
+      - name: Stage SPA under marketing/public/demo-app
+        run: |
+          rm -rf marketing/public/demo-app
+          mkdir -p marketing/public/demo-app
+          cp -R web/dist/. marketing/public/demo-app/
+
+      # ── 2. Build the Astro marketing site ──────────────────────────────
+      - name: Install marketing deps
+        working-directory: marketing
+        run: pnpm install --frozen-lockfile
+
+      - name: Build marketing (astro check + astro build)
+        working-directory: marketing
+        env:
+          # Override per environment via repo Variables when DNS changes.
+          ASTRO_SITE: ${{ vars.MARKETING_SITE_URL || 'https://schnsrw.live' }}
+          ASTRO_BASE: ${{ vars.MARKETING_SITE_BASE || '' }}
+        run: pnpm build
+
       - uses: actions/configure-pages@v5
+
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: web/dist
+          path: marketing/dist
 
   deploy:
     name: deploy to Pages

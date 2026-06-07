@@ -1,0 +1,93 @@
+---
+title: Contributing
+description: Casual Drive is a small project run with strong opinions. Here's how to land a change without us bouncing it back.
+layout: ../../layouts/DocLayout.astro
+---
+
+## Repo layout
+
+```
+drive/
+  crates/
+    drive-bin/        the single binary entrypoint
+    drive-http/       routes, handlers, middleware
+    drive-auth/       sessions, password hashing
+    drive-db/         sqlx repos + migrations (SQLite + Postgres portable)
+    drive-storage/    OpenDAL facade + fs/s3/minio/memory adapters
+    drive-wopi/       WOPI host implementation
+  web/                React + Vite SPA, embedded into drive-bin at build
+  marketing/          this site
+  docs/               research briefs + UX specs + architecture
+  PIPELINE.md         what's done, what's next, who owns it
+  CLAUDE.md           inviolable rules + working mode
+```
+
+## Dev loop
+
+You'll need three terminals.
+
+```bash
+# 1. The backend.
+cargo run -p drive
+
+# 2. The SPA (dev server with HMR; talks to the cargo process on :8080).
+cd web && pnpm dev
+
+# 3. This marketing site (if you're touching it).
+cd marketing && pnpm dev
+```
+
+The SPA dev server proxies `/api`, `/raw`, and `/wopi` to the Rust process so you don't fight CORS during development.
+
+## The five inviolable rules
+
+Set by the project owner, never broken. The `CLAUDE.md` at the repo root spells them out, but in short:
+
+1. **Research first.** Investigate prior art before proposing. Briefs live in `docs/research/`.
+2. **Plan UX.** Numbered flows before pixels. Spec lives in `docs/ux/`.
+3. **Consistent UI.** Surfaces, copy, motion all coherent.
+4. **Industry-standard secure coding.** No homebrew crypto. OWASP-aware.
+5. **Polished, minimalistic design.** macOS-app-grade polish. The [10 commandments](https://github.com/schnsrw/casual-drive/blob/main/docs/research/04-polish-principles.md) are enforced.
+
+A PR that breaks a polish commandment has to call it out and explain.
+
+## PR conventions
+
+- Small. Focused. One idea per PR.
+- Tests included. Every flow ships with unit + handler tests. UI flows ship with Playwright e2e.
+- Docs updated **in the same commit**. If you change a flow, update `docs/ux/01-flows.md`. If you change the storage facade, update `docs/ARCHITECTURE.md`. Stale docs poison every future contributor session.
+- Commits don't mention the model that helped write them. No `Co-Authored-By` on machine output.
+- UI icons are SVG (Lucide), never emoji.
+- Timestamps render in user-preferred or system timezone, never UTC.
+- Don't add a runtime dependency casually — justify it in the PR.
+
+## What's locked
+
+These are not up for debate without new research + a synthesis update:
+
+- **WOPI** is the editor handoff. Not gRPC, not WebSockets, not a homegrown protocol.
+- **OpenDAL** is the storage facade. Not a custom S3 client.
+- **tower-sessions** is the session layer.
+- **Argon2id** is the password hash.
+- **Rust + Axum 0.8** is the backend.
+- **React + Vite** is the SPA.
+- **Astro** is the marketing site.
+
+Reopening any of these requires evidence the current choice is wrong, not a preference.
+
+## Phase awareness
+
+Always know which phase you're in. The current phase is at the top of `PLAN.md` and `PIPELINE.md`. Don't start Phase 1 code until Phase 0 spikes are decided. Don't start Phase 3 code at all yet.
+
+## Good first issues
+
+Look at the GitHub issue tracker for the `good-first-issue` label. Typical entries:
+
+- Add a Lighthouse CI job to the marketing site workflow.
+- Extend the Playwright suite with a multi-workspace isolation test.
+- Add a new storage backend (e.g., Backblaze B2 via OpenDAL).
+- Write a research brief on a specific topic listed under the `research-wanted` label.
+
+## Code of conduct
+
+We use the [Contributor Covenant](https://www.contributor-covenant.org/). Be kind, be precise, assume good faith.

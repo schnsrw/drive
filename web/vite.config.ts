@@ -9,8 +9,13 @@ import { defineConfig, loadEnv } from "vite";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const backend = env.DRIVE_DEV_BACKEND ?? "http://127.0.0.1:18090";
+  // Asset root override. Real-Drive builds embed into the binary at "/";
+  // the marketing site mounts the demo at "/demo-app/" and needs hashed
+  // asset URLs scoped under that prefix. CI sets VITE_BASE accordingly.
+  const base = env.VITE_BASE ?? "/";
 
   return {
+    base,
     plugins: [react(), tailwindcss()],
     server: {
       port: 5173,

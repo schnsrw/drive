@@ -1,0 +1,14 @@
+node_modules
+dist
+.astro
+.env
+.env.production
+.DS_Store
+
+# Built SPA demo bundle — copied in at build time, never committed.
+public/demo-app
+
+# Self-hosted Inter fonts — fetched by CI from rsms.me. The .gitkeep
+# tells the directory to exist; the woff2 files themselves are not
+# checked in (binary blobs, kept fresh by the workflow).
+public/fonts/*.woff2

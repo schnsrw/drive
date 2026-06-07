@@ -1,0 +1,44 @@
+---
+/**
+ * Landing — /
+ * Spec: docs/ux/14-marketing-surface.md.
+ * SEO: SoftwareApplication JSON-LD; single H1 lives in Hero.
+ */
+import Base from "../layouts/Base.astro";
+import Hero from "../components/Hero.astro";
+import ScreenshotShowcase from "../components/ScreenshotShowcase.astro";
+import FeatureGrid from "../components/FeatureGrid.astro";
+import HowItWorks from "../components/HowItWorks.astro";
+import Compare from "../components/Compare.astro";
+import FinalCta from "../components/FinalCta.astro";
+
+const description =
+  "Casual Drive is an open-source, self-hosted Drive that opens .xlsx and .docx in your browser via WOPI. Rust + React, single binary, S3 or filesystem, no tracking.";
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Casual Drive",
+  description,
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web, Docker, Linux, macOS",
+  url: "https://schnsrw.live/",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  license: "https://opensource.org/license/mit",
+  isAccessibleForFree: true,
+  softwareRequirements: "Modern browser, plus a server for self-hosting",
+};
+---
+
+<Base
+  title="Self-hosted Drive that opens .xlsx and .docx in the browser"
+  description={description}
+  jsonLd={jsonLd}
+>
+  <Hero />
+  <ScreenshotShowcase />
+  <FeatureGrid />
+  <HowItWorks />
+  <Compare />
+  <FinalCta />
+</Base>

@@ -1,0 +1,105 @@
+---
+title: Architecture
+description: A small Drive built on a small set of decisions. One Rust binary, two HTTP origins, a four-backend storage facade, three token types, and WOPI for the editor handoff.
+layout: ../../layouts/DocLayout.astro
+---
+
+## The big picture
+
+```
+                    ┌───────────────────────────────┐
+                    │       Browser                 │
+                    └────────────┬──────────────────┘
+                                 │
+                ┌────────────────┼─────────────────────┐
+                │                │                     │
+        drive.example.com        │     usercontent-drive.example.com
+        ┌─────────────────┐      │     ┌──────────────────────────┐
+        │  SPA · JSON API │      │     │  /raw/{token} (bytes)    │
+        │  WOPI endpoints │      │     │  CSP: sandbox; none      │
+        │  Session cookie │      │     │  Content-Disposition:    │
+        │  Strict CSP     │      │     │    attachment            │
+        └────────┬────────┘      │     └─────────────┬────────────┘
+                 │               │                   │
+                 └───────────────┼───────────────────┘
+                                 │
+                       ┌─────────▼─────────┐
+                       │  drive binary     │
+                       │  (Rust + Axum)    │
+                       └─────────┬─────────┘
+                                 │
+                  ┌──────────────┼──────────────┐
+                  │              │              │
+              SQL DB         Storage         Editors
+            (SQLite           facade         (sheet/,
+             or Postgres)        │           document/)
+                                 │
+              ┌──────┬───────────┼────────────┐
+              │      │           │            │
+             fs   memory         S3         MinIO
+```
+
+A single Rust binary. Two HTTP origins served by the same process — the request `Host` header selects the surface. Four storage backends behind one trait. Three token types that never get confused with each other.
+
+## Two-origin model
+
+The app and the file bytes live on different origins. This is non-negotiable.
+
+- **`drive.example.com`** — the SPA, the JSON API, the WOPI endpoints. Cookies live here. A strict CSP locks the page down.
+- **`usercontent-drive.example.com`** — the only place raw file bytes are ever served. `Content-Security-Policy: sandbox; default-src 'none'`. No cookies. Every non-previewable type gets `Content-Disposition: attachment` forced.
+
+A user uploads an HTML file with `<script>` in it. Without two-origin separation, opening that file would execute the script with access to your session cookie — game over. With separation, the script runs on a cookieless origin sandboxed to nothing, so it can't reach the app.
+
+Drive **refuses to start** in production if the two origins are configured the same. Test this.
+
+## Three tokens, three jobs
+
+Don't reuse one for another's job.
+
+| Token | Where it lives | Purpose | TTL |
+|---|---|---|---|
+| **Session cookie** | `__Host-cd_sid` browser cookie | The signed-in admin | configurable (default 7d) |
+| **WOPI access token** | Header + query on every WOPI request | Per-launch, per-file edit grant | 10 min |
+| **Share-link token** | Path segment `/s/<token>` | Public, optionally-password-gated share | configurable (default 30d) |
+| **Signed-URL token** | `?token=` on `/raw/{token}` | Per-download HMAC for the fs/mem backends | 5 min |
+
+All four are validated server-side with constant-time compares. The WOPI access token is HMAC-SHA256 over `(user_id, file_id, perms, exp, jti)` — the file id in the URL must match the file id in the claim, every call.
+
+## WOPI handoff
+
+When you click a `.xlsx` in Drive:
+
+1. The SPA hits `GET /api/files/{id}/open`.
+2. The server mints a WOPI access token + returns `{ editor_app, entry_url, access_token, wopi_src }`.
+3. The SPA navigates to `entry_url` (sheet.example.com), passing the token + WOPI src.
+4. The editor (Casual Sheet) calls back to `wopi_src` for `CheckFileInfo`, `GetFile`, `Lock`, `Unlock`, `PutFile`, `RefreshLock`, `RenameFile` — the 7-endpoint WOPI surface.
+5. Drive validates the access token on every callback. File id in URL must match the file id in the claim.
+
+Locks are 30-minute, refreshed every ~10 minutes by the editor. Stale locks (`expires_at < now()`) are treated as absent. The 409-conflict response includes a mandatory `X-WOPI-Lock` header carrying the conflicting lock id — that's WOPI spec, not a convention.
+
+> Proof-key RSA validation (needed for MS365 federation) is wired but stubbed in v0. The hook returns `Ok(())`. When the federation switch flips, that hook becomes real.
+
+## Storage facade
+
+Handler code talks to `Arc<Storage>`. It never reaches into the OpenDAL operator directly. The facade is what lets every backend present the same capability set + lets the signed-URL `/raw/{token}` fallback work uniformly.
+
+Adding a new backend = listing a new `opendal::services::*` builder in `Storage::from_env`. The trait doesn't grow.
+
+Storage keys are `ulid::Ulid::new()`. Never derived from user input. Display names are separate metadata, sanitised on store and re-sanitised on render. The fs adapter canonicalises and root-confines every resolved path; it refuses symlinks that escape the root.
+
+## Workspaces
+
+Every user gets a Personal workspace at signup, immutable + untransferable. They can create zero-or-more Team workspaces. Team workspace owners can transfer ownership to a Member (atomic transaction). Files + folders are scoped by `workspace_id`; switching workspaces in the sidebar re-scopes every list, search, upload, and folder-create.
+
+Membership is enforced via `WorkspaceMemberRepo::role_of`. A caller can only operate inside workspaces where they hold an Owner or Member row.
+
+## Where the briefs live
+
+The decisions behind each piece are documented in topic briefs you can find in the repo:
+
+- `docs/research/01-wopi.md` — WOPI conformance, lock semantics, proof-key.
+- `docs/research/02-auth.md` — Argon2id, tower-sessions, why not OIDC in v0.
+- `docs/research/03-storage.md` — OpenDAL trait, four-backend matrix.
+- `docs/research/04-polish-principles.md` — the 10 commandments + tokens.
+- `docs/research/05-rust-stack.md` — Axum 0.8 + tokio + sqlx::Any.
+- `docs/research/06-security.md` — magic-byte sniff, CSP, redaction.

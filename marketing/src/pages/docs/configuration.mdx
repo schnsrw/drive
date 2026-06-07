@@ -1,0 +1,105 @@
+---
+title: Configuration
+description: Every environment variable Casual Drive reads at boot — what it defaults to, what it does, and a realistic example.
+layout: ../../layouts/DocLayout.astro
+---
+
+## Bind & origins
+
+| Var | Default | Notes |
+|---|---|---|
+| `DRIVE_BIND` | `127.0.0.1:8080` | TCP bind. Use `0.0.0.0:8080` behind a proxy. |
+| `DRIVE_APP_ORIGIN` | — | Required. `https://drive.example.com`. Cookies + CSP. |
+| `DRIVE_USERCONTENT_ORIGIN` | — | Required. `https://usercontent-drive.example.com`. Must differ from app. |
+| `DRIVE_TRUST_X_FORWARDED` | `false` | Only enable behind a trusted proxy you control. |
+| `DRIVE_LOG_LEVEL` | `info` | `error`, `warn`, `info`, `debug`, `trace`. |
+
+## Storage backend
+
+`DRIVE_STORAGE_BACKEND` picks one of: `fs`, `s3`, `minio`, `memory`.
+
+### Filesystem (`fs`)
+
+| Var | Default | Notes |
+|---|---|---|
+| `DRIVE_FS_ROOT` | — | Absolute path. Storage keys are ULIDs; the adapter root-confines every resolved path. |
+
+### S3 (`s3`)
+
+| Var | Default | Notes |
+|---|---|---|
+| `DRIVE_S3_BUCKET` | — | Required. |
+| `DRIVE_S3_REGION` | `us-east-1` | |
+| `DRIVE_S3_ACCESS_KEY_ID` | — | IAM-scoped to the bucket. |
+| `DRIVE_S3_SECRET_ACCESS_KEY` | — | |
+| `DRIVE_S3_ENDPOINT` | (AWS) | Set for non-AWS providers (Backblaze, R2). |
+
+### MinIO (`minio`)
+
+Same as `s3` plus an explicit endpoint and forced path-style addressing:
+
+```
+DRIVE_STORAGE_BACKEND=minio
+DRIVE_S3_BUCKET=drive-prod
+DRIVE_S3_REGION=us-east-1
+DRIVE_S3_ENDPOINT=https://minio.internal:9000
+DRIVE_S3_ACCESS_KEY_ID=…
+DRIVE_S3_SECRET_ACCESS_KEY=…
+```
+
+### Memory (`memory`)
+
+For testing only. Loses everything on restart. No env vars.
+
+## Database
+
+| Var | Default | Notes |
+|---|---|---|
+| `DRIVE_DATABASE_URL` | `sqlite::memory:` | Production: `sqlite:///data/drive.db` or `postgres://…`. |
+
+The schema is portable across SQLite + Postgres — every migration ships in `crates/drive-db/migrations/`.
+
+## Sessions
+
+| Var | Default | Notes |
+|---|---|---|
+| `DRIVE_SESSION_SECRET` | (random) | 32+ random bytes. Set this so sessions survive restarts. |
+| `DRIVE_SESSION_TTL_HOURS` | `168` | Browser cookie lifetime. |
+| `DRIVE_SESSION_COOKIE_NAME` | `__Host-cd_sid` | Don't change unless you have a reason. |
+
+## Rate limits
+
+| Var | Default | Notes |
+|---|---|---|
+| `DRIVE_UPLOAD_RPS` | `30` | Per-user upload requests per minute. |
+| `DRIVE_AUTH_LOCKOUT_THRESHOLD` | `5` | Failed sign-ins before short backoff. |
+
+## Editor handoff (WOPI)
+
+| Var | Default | Notes |
+|---|---|---|
+| `DRIVE_SHEET_ORIGIN` | — | URL of your Casual Sheet instance for `.xlsx`. |
+| `DRIVE_DOCUMENT_ORIGIN` | — | URL of your Casual Document instance for `.docx`. |
+| `DRIVE_WOPI_TOKEN_TTL_SECS` | `600` | 10-minute access token; SPA refreshes the lock every 10 min. |
+
+When an editor origin is missing, the corresponding extension is still uploaded — but clicking it returns 503 `editor not configured` instead of opening.
+
+## SMTP (deferred)
+
+Reserved env-var slot for future invitation emails. Set nothing for now.
+
+## Backup
+
+Two things to back up:
+
+1. **The database.** SQLite: snapshot the `.db` file (use `sqlite3 .backup` for a hot snapshot). Postgres: `pg_dump`.
+2. **The storage backend.** `fs`: `rsync` the `DRIVE_FS_ROOT`. `s3`/`minio`: enable bucket versioning + cross-region replication.
+
+These two backups must be consistent — restore the DB to a moment matching the storage snapshot. Drive doesn't lock storage during DB dump (that would freeze uploads); use the audit log to pick a quiet window.
+
+## Health & metrics
+
+- `GET /healthz` — 200 always. Cheap.
+- `GET /readyz` — 200 if storage + DB respond.
+- Logs are structured JSON when `DRIVE_LOG_FORMAT=json`; otherwise pretty-printed.
+- Metrics endpoint is **not** in v0; planned for Phase 3.

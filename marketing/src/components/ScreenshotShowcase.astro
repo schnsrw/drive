@@ -1,0 +1,215 @@
+---
+/**
+ * Screenshot showcase — tabbed device frame. Currently three slots; real
+ * screenshots drop into public/screenshots/ once the SPA is in a state
+ * worth capturing. Until then the slot renders a styled placeholder
+ * (per docs/ux/14 "State checklists: empty has a real-content stub").
+ */
+const shots = [
+  {
+    id: "files",
+    label: "Files",
+    src: "/screenshots/files-dark.png",
+    alt: "Casual Drive — file list in dark mode, showing folders and recent files",
+  },
+  {
+    id: "editor",
+    label: "Editor",
+    src: "/screenshots/editor-xlsx.png",
+    alt: "Casual Sheet opened from Drive via WOPI, editing a budget spreadsheet",
+  },
+  {
+    id: "sharing",
+    label: "Sharing",
+    src: "/screenshots/share-dialog.png",
+    alt: "Share dialog with password and expiry options on a file",
+  },
+];
+---
+
+<section class="showcase cv-auto" aria-label="Product screenshots">
+  <div class="container">
+    <div class="showcase-frame">
+      <div class="showcase-tabs" role="tablist">
+        {
+          shots.map((s, i) => (
+            <button
+              type="button"
+              role="tab"
+              class="showcase-tab"
+              data-target={s.id}
+              aria-selected={i === 0 ? "true" : "false"}
+              tabindex={i === 0 ? 0 : -1}
+            >
+              {s.label}
+            </button>
+          ))
+        }
+      </div>
+
+      <div class="showcase-stage">
+        {
+          shots.map((s, i) => (
+            <figure
+              class="showcase-shot"
+              data-shot={s.id}
+              hidden={i !== 0}
+            >
+              <img
+                src={s.src}
+                alt={s.alt}
+                width="1600"
+                height="1000"
+                loading={i === 0 ? "eager" : "lazy"}
+                decoding={i === 0 ? "sync" : "async"}
+                onerror="this.parentNode.classList.add('showcase-fallback')"
+              />
+              <div class="showcase-fallback-msg" aria-hidden="true">
+                <span>{s.label} screenshot · captured in the demo</span>
+              </div>
+            </figure>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const tabs = document.querySelectorAll<HTMLButtonElement>(".showcase-tab");
+  const shots = document.querySelectorAll<HTMLElement>(".showcase-shot");
+
+  function activate(id: string) {
+    tabs.forEach((t) => {
+      const active = t.dataset.target === id;
+      t.setAttribute("aria-selected", active ? "true" : "false");
+      t.tabIndex = active ? 0 : -1;
+    });
+    shots.forEach((s) => {
+      s.hidden = s.dataset.shot !== id;
+    });
+  }
+
+  tabs.forEach((t) => {
+    t.addEventListener("click", () => activate(t.dataset.target!));
+  });
+
+  // Keyboard support — ←/→ cycles tabs.
+  const tabList = Array.from(tabs);
+  tabList.forEach((t, i) => {
+    t.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight") {
+        const next = tabList[(i + 1) % tabList.length];
+        next.focus();
+        activate(next.dataset.target!);
+      } else if (e.key === "ArrowLeft") {
+        const prev = tabList[(i - 1 + tabList.length) % tabList.length];
+        prev.focus();
+        activate(prev.dataset.target!);
+      }
+    });
+  });
+</script>
+
+<style>
+  .showcase {
+    padding-block: var(--space-8) var(--space-16);
+  }
+
+  @media (min-width: 768px) {
+    .showcase {
+      padding-block: var(--space-10) var(--space-20);
+    }
+  }
+
+  .showcase-frame {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-xl);
+    background: var(--card);
+    overflow: hidden;
+    box-shadow: var(--shadow-card);
+  }
+
+  .showcase-tabs {
+    display: flex;
+    gap: 2px;
+    padding: var(--space-2);
+    background: var(--paper-2);
+    border-bottom: 1px solid var(--line);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .showcase-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .showcase-tab {
+    flex-shrink: 0;
+    min-height: 38px;
+    padding: 0 var(--space-4);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--muted);
+    transition: background var(--dur-fast) var(--ease);
+    user-select: none;
+  }
+
+  .showcase-tab:hover {
+    background: var(--bg-hover);
+    color: var(--ink-soft);
+  }
+
+  .showcase-tab[aria-selected="true"] {
+    background: var(--card);
+    color: var(--ink);
+    box-shadow: 0 1px 0 var(--line) inset;
+  }
+
+  .showcase-stage {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    background: var(--bg-subtle);
+  }
+
+  .showcase-shot {
+    margin: 0;
+    position: absolute;
+    inset: 0;
+  }
+
+  .showcase-shot img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+  }
+
+  /* Friendly fallback when a screenshot is missing during early dev. */
+  .showcase-shot.showcase-fallback img {
+    display: none;
+  }
+
+  .showcase-fallback-msg {
+    display: none;
+    position: absolute;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: var(--text-sm);
+    background: repeating-linear-gradient(
+      45deg,
+      var(--bg-subtle),
+      var(--bg-subtle) 12px,
+      var(--paper-2) 12px,
+      var(--paper-2) 24px
+    );
+  }
+
+  .showcase-shot.showcase-fallback .showcase-fallback-msg {
+    display: flex;
+  }
+</style>

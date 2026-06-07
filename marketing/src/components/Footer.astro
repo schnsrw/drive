@@ -1,0 +1,146 @@
+---
+import Logo from "./Logo.astro";
+
+const year = 2026;
+---
+
+<footer class="footer">
+  <div class="container footer-row">
+    <div class="footer-brand">
+      <a href="/" class="footer-brand-link">
+        <Logo size={24} />
+        <span>Casual Drive</span>
+      </a>
+      <p class="footer-tag">
+        Part of Casual Office. Your files, your editors, your server.
+      </p>
+    </div>
+
+    <div class="footer-cols">
+      <div class="footer-col">
+        <h3 class="footer-col-h">Product</h3>
+        <a href="/docs/install" class="footer-link">Install</a>
+        <a href="/docs/configuration" class="footer-link">Configuration</a>
+        <a href="/screenshots" class="footer-link">Screenshots</a>
+        <a href="/demo" class="footer-link">Demo</a>
+      </div>
+      <div class="footer-col">
+        <h3 class="footer-col-h">Build</h3>
+        <a href="/docs/architecture" class="footer-link">Architecture</a>
+        <a href="/docs/contributing" class="footer-link">Contributing</a>
+        <a
+          href="https://github.com/schnsrw/casual-drive"
+          class="footer-link"
+          rel="noopener external"
+          target="_blank"
+        >Source</a>
+        <a
+          href="https://github.com/schnsrw/casual-drive/issues"
+          class="footer-link"
+          rel="noopener external"
+          target="_blank"
+        >Issues</a>
+      </div>
+      <div class="footer-col">
+        <h3 class="footer-col-h">Suite</h3>
+        <a href="https://sheet.schnsrw.live" class="footer-link" rel="noopener external" target="_blank">Casual Sheet</a>
+        <a href="https://document.schnsrw.live" class="footer-link" rel="noopener external" target="_blank">Casual Document</a>
+        <a href="https://schnsrw.live" class="footer-link" rel="noopener external" target="_blank">schnsrw.live</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container footer-meta">
+    <span>© {year} Casual Drive · MIT</span>
+    <span class="footer-meta-spacer" aria-hidden="true">·</span>
+    <span>Open-source. No tracking. No newsletter pop-ups.</span>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    margin-top: var(--space-16);
+    padding-block: var(--space-16) var(--space-8);
+    border-top: 1px solid var(--line);
+    background: var(--paper-2);
+  }
+
+  .footer-row {
+    display: grid;
+    gap: var(--space-10);
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 768px) {
+    .footer-row {
+      grid-template-columns: 1fr 2fr;
+      align-items: start;
+    }
+  }
+
+  .footer-brand-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-weight: 600;
+    font-size: var(--text-md);
+  }
+
+  .footer-tag {
+    margin-top: var(--space-3);
+    color: var(--muted);
+    font-size: var(--text-sm);
+    max-width: 280px;
+  }
+
+  .footer-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-6);
+  }
+
+  @media (min-width: 640px) {
+    .footer-cols {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+  }
+
+  .footer-col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .footer-col-h {
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted-2);
+    font-weight: 600;
+    margin-bottom: var(--space-2);
+  }
+
+  .footer-link {
+    font-size: var(--text-sm);
+    color: var(--ink-soft);
+  }
+
+  .footer-link:hover {
+    color: var(--accent-strong);
+  }
+
+  .footer-meta {
+    margin-top: var(--space-10);
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--line);
+    font-size: var(--text-xs);
+    color: var(--muted-2);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-3);
+  }
+
+  .footer-meta-spacer {
+    color: var(--muted-2);
+  }
+</style>

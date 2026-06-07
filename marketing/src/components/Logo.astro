@@ -1,0 +1,29 @@
+---
+/**
+ * Casual Drive wordmark/glyph. Inline SVG → zero requests, scales perfectly.
+ */
+export interface Props {
+  size?: number;
+}
+const { size = 24 } = Astro.props;
+---
+
+<svg
+  width={size}
+  height={size}
+  viewBox="0 0 32 32"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+  aria-hidden="true"
+  role="img"
+>
+  <rect x="2" y="2" width="28" height="28" rx="8" fill="var(--ink)" />
+  <path
+    d="M9 11.5C9 10.1193 10.1193 9 11.5 9H20.5C21.8807 9 23 10.1193 23 11.5V20.5C23 21.8807 21.8807 23 20.5 23H11.5C10.1193 23 9 21.8807 9 20.5V11.5Z"
+    fill="var(--accent)"
+  />
+  <path
+    d="M13.5 14L18.5 16L13.5 18V14Z"
+    fill="var(--ink)"
+  />
+</svg>

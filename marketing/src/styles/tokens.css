@@ -1,0 +1,132 @@
+/**
+ * Marketing tokens. Looser than Drive's strict app tokens — bigger type
+ * scale, more whitespace — but the color tokens are identical so /demo
+ * snaps back to the Drive system without a theme jolt.
+ *
+ * Spec: docs/research/07-marketing-site.md, docs/ux/14-marketing-surface.md.
+ */
+
+:root {
+  /* ── Color: light theme ─────────────────────────────────────────── */
+  --paper: #fbf9f4;
+  --paper-2: #f5f1e8;
+  --card: #ffffff;
+  --ink: #1a1a1e;
+  --ink-soft: #2c2c33;
+  --muted: #6b6b73;
+  --muted-2: #93939c;
+  --line: rgba(26, 26, 30, 0.08);
+  --line-strong: rgba(26, 26, 30, 0.15);
+  --bg-subtle: rgba(26, 26, 30, 0.03);
+  --bg-hover: rgba(26, 26, 30, 0.05);
+
+  --accent: #c8a45c;
+  --accent-strong: #b08c45;
+  --accent-muted: rgba(200, 164, 92, 0.12);
+
+  --success: #2f7d3f;
+  --danger: #b22424;
+  --warn: #c8a45c;
+
+  --shadow-soft: 0 1px 2px rgba(26, 26, 30, 0.06);
+  --shadow-card: 0 4px 16px rgba(26, 26, 30, 0.06);
+  --shadow-hover: 0 10px 30px rgba(26, 26, 30, 0.12);
+
+  /* ── Type scale (mobile baseline, scales up at md+) ─────────────── */
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --font-display: "Inter", system-ui, sans-serif;
+
+  --text-xs: 0.75rem; /* 12 */
+  --text-sm: 0.875rem; /* 14 */
+  --text-md: 1rem; /* 16 */
+  --text-lg: 1.125rem; /* 18 */
+  --text-xl: 1.25rem; /* 20 */
+  --text-2xl: 1.5rem; /* 24 */
+  --text-3xl: 1.875rem; /* 30 */
+  --text-4xl: 2.25rem; /* 36 */
+  --text-5xl: 2.75rem; /* 44 — mobile hero */
+  --text-6xl: 3.5rem; /* 56 */
+
+  /* ── Spacing (4/8 grid) ─────────────────────────────────────────── */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  /* ── Radii (concentric) ─────────────────────────────────────────── */
+  --radius-xs: 4px;
+  --radius-sm: 7px;
+  --radius-md: 11px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+
+  /* ── Motion ─────────────────────────────────────────────────────── */
+  --ease: cubic-bezier(0.2, 0.6, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur: 220ms;
+  --dur-slow: 360ms;
+
+  --container: 1200px;
+  --container-narrow: 760px;
+}
+
+/* ── Dark theme — same vocabulary, inverted surfaces ────────────────── */
+:root.dark {
+  --paper: #0e0e10;
+  --paper-2: #15151a;
+  --card: #1a1a20;
+  --ink: #f3f1ea;
+  --ink-soft: #d9d7d0;
+  --muted: #9b9aa1;
+  --muted-2: #6e6e75;
+  --line: rgba(243, 241, 234, 0.08);
+  --line-strong: rgba(243, 241, 234, 0.15);
+  --bg-subtle: rgba(243, 241, 234, 0.04);
+  --bg-hover: rgba(243, 241, 234, 0.06);
+
+  --accent: #d6b574;
+  --accent-strong: #c8a45c;
+  --accent-muted: rgba(214, 181, 116, 0.12);
+
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Mobile-first scale-ups ─────────────────────────────────────────── */
+@media (min-width: 768px) {
+  :root {
+    --text-5xl: 3rem; /* 48 */
+    --text-6xl: 4rem; /* 64 */
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --text-5xl: 3.5rem; /* 56 */
+    --text-6xl: 5rem; /* 80 */
+  }
+}
+
+/* ── prefers-reduced-motion: commandment 8 ─────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

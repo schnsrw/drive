@@ -1,0 +1,124 @@
+---
+/**
+ * Comparison table — Casual Drive vs Google Drive vs Nextcloud.
+ * Mobile: horizontal scroll inside container, never overflows viewport.
+ */
+const rows = [
+  { feat: "Self-hosted", cd: "Yes", gd: "No", nc: "Yes" },
+  { feat: "Edit .xlsx in browser", cd: "Yes (Casual Sheet)", gd: "Yes (Sheets)", nc: "Add-on" },
+  { feat: "Edit .docx in browser", cd: "Yes (Casual Document)", gd: "Yes (Docs)", nc: "Add-on" },
+  { feat: "S3 / MinIO backend", cd: "Yes", gd: "No", nc: "Add-on" },
+  { feat: "Single binary install", cd: "Yes", gd: "—", nc: "No (PHP stack)" },
+  { feat: "Two-origin sandbox", cd: "Yes", gd: "Yes", nc: "Optional" },
+  { feat: "Audit log", cd: "Yes (built-in)", gd: "Workspace tier", nc: "Add-on" },
+  { feat: "Tracking / telemetry", cd: "None", gd: "Heavy", nc: "Optional" },
+  { feat: "Cost at 5 users", cd: "$5 / mo VPS", gd: "$30 / mo", nc: "$5 / mo VPS" },
+];
+---
+
+<section class="section cv-auto">
+  <div class="container">
+    <header class="section-header">
+      <p class="section-eyebrow">Compared</p>
+      <h2 class="section-title">Where it sits.</h2>
+      <p class="section-lede">
+        Not a Drive clone. Not a Nextcloud fork. A focused, fast file
+        manager built for the Casual Office suite.
+      </p>
+    </header>
+
+    <div class="compare-scroll">
+      <table class="compare">
+        <thead>
+          <tr>
+            <th scope="col" class="compare-feat">Feature</th>
+            <th scope="col" class="compare-us">Casual Drive</th>
+            <th scope="col">Google Drive</th>
+            <th scope="col">Nextcloud</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            rows.map((r) => (
+              <tr>
+                <th scope="row" class="compare-feat">{r.feat}</th>
+                <td class="compare-us">{r.cd}</td>
+                <td>{r.gd}</td>
+                <td>{r.nc}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="compare-foot">
+      Honest table. We're not the best at everything — we're the best at
+      being a small, sharp, self-hosted file manager that opens Office
+      documents in the browser.
+    </p>
+  </div>
+</section>
+
+<style>
+  .compare-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--card);
+  }
+
+  .compare {
+    width: 100%;
+    min-width: 560px;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+  }
+
+  .compare th,
+  .compare td {
+    padding: var(--space-3) var(--space-4);
+    text-align: left;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink-soft);
+  }
+
+  .compare thead th {
+    color: var(--muted);
+    font-weight: 500;
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    background: var(--paper-2);
+  }
+
+  .compare tbody tr:last-child th,
+  .compare tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .compare-feat {
+    font-weight: 500;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+
+  .compare-us {
+    background: var(--accent-muted);
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .compare tbody .compare-us {
+    background: color-mix(in srgb, var(--accent-muted) 60%, transparent);
+  }
+
+  .compare-foot {
+    margin-top: var(--space-4);
+    font-size: var(--text-xs);
+    color: var(--muted-2);
+    text-align: center;
+    max-width: 580px;
+    margin-inline: auto;
+  }
+</style>

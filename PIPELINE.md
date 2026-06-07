@@ -131,7 +131,7 @@
 | 8.5 | RBAC (roles + permissions) | 🟡 wip | P1 | Owner+Member today; Admin/Editor/Viewer split + per-action checks in §8.8 |
 | 8.6 | Per-workspace storage quota | ⏸ v0.2+ | — | per-user quota done; workspace-level cap rolls in with phase 2 |
 | 8.7 | Admin user management UI (create / list / quota allocation) | 🟡 wip | P1 | backend done; Admin → Users table + inline quota edit UI pending |
-| 8.8 | **Phase 2** — file/folder `workspace_id` column + scoped queries + full RBAC checks | ⬜ todo | P0 | the big one — every file handler gets workspace permission gate |
+| 8.8 | **Phase 2** — file/folder `workspace_id` column + scoped queries + switcher re-scopes UI | ✅ done | P0 | migration 0006 backfills from owner's Personal; `list_children_in_workspace` + `workspace_used_bytes`; handlers accept `?workspace=` / multipart `workspace_id` / body `workspace_id`; SPA `WorkspaceContext` re-renders Files/search/upload on switcher pick. Full RBAC role-tiers (Admin/Editor/Viewer) deferred — Owner+Member membership gate is enforced now |
 | 8.9 | Bring-your-own storage per workspace (S3 / MinIO endpoint + bucket + creds + test-connection flow) | ⬜ todo | P1 | per-workspace `Storage` adapter override; storage credentials encrypted with `DRIVE_STORAGE_SECRET_KEY` |
 | 8.10 | Quota upgrade request flow | ✅ done | P2 | `POST /api/me/quota/request` emits audit event; admin sees in Activity |
 | 8.11 | Notes / Wiki (personal + workspace scope) | ⬜ todo | P1 | rich-text editor (lexical) **or** plain `.md` files stored as file blobs with a markdown-aware editor. Pages tree, backlinks, search. New left-rail surface beside My Drive |
@@ -196,6 +196,26 @@
 | 13.5 | `GET /api/files/{id}/download` 302 → signed URL | ✅ done | P0 | drive-http::files |
 | 13.6 | `POST /api/files/{id}/upload-url` (direct-to-S3 client upload) | ⬜ todo | P2 | bypasses Drive for large uploads |
 | 13.7 | Settings UI showing signed-URL TTL | 🟦 stub | P2 | Coming soon |
+
+## 15 — Marketing site + GH Pages
+
+Spec: [[07-marketing-site]] + [[14-marketing-surface]]. Astro 5, multi-page docs site, looser marketing identity, /demo embeds the SPA bundle.
+
+| # | Item | Status | Priority | Notes |
+|---|---|---|---|---|
+| 15.1 | Astro scaffold + tokens + Base layout + Nav + Footer | ✅ done | P0 | mobile-first, dark/light, JSON-LD, OG, canonical, sitemap |
+| 15.2 | Landing `/` (Hero, ScreenshotShowcase, FeatureGrid, HowItWorks, Compare, FinalCta) | ✅ done | P0 | single H1, SoftwareApplication schema |
+| 15.3 | `/docs/install` + `/docs/configuration` + `/docs/architecture` + `/docs/contributing` (MDX) | ✅ done | P0 | shared DocLayout w/ sidebar |
+| 15.4 | `/screenshots` gallery | ✅ done | P1 | placeholder tiles until real shots drop into public/screenshots/ |
+| 15.5 | `/demo` route (iframe → /demo-app/ bundle) | ✅ done | P0 | noindex; SPA built with `VITE_BASE=/demo-app/` |
+| 15.6 | GitHub Actions workflow (build SPA + Astro, deploy Pages) | ✅ done | P0 | replaces prior SPA-only deploy; fetches Inter fonts in CI |
+| 15.7 | Capture + commit real screenshots | ⬜ todo | P1 | placeholders gracefully fall back today |
+| 15.8 | Pre-built OG image at `/og/default.png` (1200×630) | ⬜ todo | P1 | links currently fall back to text card |
+| 15.9 | Lighthouse CI job in workflow (target P/A/B/S ≥ 95) | ⬜ todo | P2 | enforces the perf budget in CR |
+| 15.10 | Pagefind-powered docs search | ⏸ v0.2+ | — | pages are few enough for Cmd-F today |
+| 15.11 | `/blog` route | ⏸ v0.2+ | — | slot reserved in footer |
+| 15.12 | i18n | ⏸ v0.2+ | — | English-only; structure leaves room for astro-i18n |
+| 15.13 | Domain flip (drive.schnsrw.live → schnsrw.live apex / casualoffice.org) | ⬜ todo | P1 | OLD CNAME at web/public/CNAME is now orphaned (deploy artifact is marketing/dist). Add marketing/public/CNAME when DNS decided; set repo `MARKETING_SITE_URL` variable. |
 
 ## 14 — Backend chassis (recap — already shipped)
 

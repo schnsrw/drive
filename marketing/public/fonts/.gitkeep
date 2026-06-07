@@ -1,0 +1,5 @@
+# Place Inter variable woff2 fonts here. CI fetches them; locally:
+#   curl -L https://rsms.me/inter/font-files/InterVariable.woff2 -o inter-variable.woff2
+#   curl -L https://rsms.me/inter/font-files/InterVariable-Italic.woff2 -o inter-italic-variable.woff2
+#
+# We self-host (not Google Fonts) for: privacy, speed (one origin), CSP simplicity.

@@ -1,0 +1,165 @@
+---
+import FileText from "./icons/FileText.astro";
+import Server from "./icons/Server.astro";
+import Search from "./icons/Search.astro";
+import Shield from "./icons/Shield.astro";
+import Activity from "./icons/Activity.astro";
+import EyeOff from "./icons/EyeOff.astro";
+
+const features = [
+  {
+    icon: FileText,
+    title: "Open in browser",
+    body: "Click an .xlsx or .docx — it opens in Casual Sheet or Casual Document via WOPI. No download dance.",
+  },
+  {
+    icon: Server,
+    title: "Self-host anywhere",
+    body: "Filesystem, S3, MinIO, or in-memory. One env var swaps the backend. A $5 VPS is plenty.",
+  },
+  {
+    icon: Search,
+    title: "Cmd-K everywhere",
+    body: "Global search across every file you own. Keyboard is a first-class surface, not an afterthought.",
+  },
+  {
+    icon: Shield,
+    title: "Two-origin model",
+    body: "The app and your file bytes live on separate origins so a poisoned upload can't reach your session cookie.",
+  },
+  {
+    icon: Activity,
+    title: "Every action audited",
+    body: "Sign-in, share, rename, trash — they're all in a tamper-evident audit log you can read.",
+  },
+  {
+    icon: EyeOff,
+    title: "No tracking, ever",
+    body: "Zero analytics. No fingerprinting. No newsletter pop-up. Your file list isn't a marketing funnel.",
+  },
+];
+---
+
+<section id="features" class="section cv-auto">
+  <div class="container">
+    <header class="section-header">
+      <p class="section-eyebrow">What it does</p>
+      <h2 class="section-title">A real Drive. Without the corporation.</h2>
+      <p class="section-lede">
+        Every surface a self-hoster expects — without the surveillance,
+        upsells, or twelve different sign-in screens.
+      </p>
+    </header>
+
+    <ul class="feature-grid" role="list">
+      {
+        features.map(({ icon: Icon, title, body }) => (
+          <li class="feature">
+            <span class="feature-icon">
+              <Icon size={18} />
+            </span>
+            <h3 class="feature-title">{title}</h3>
+            <p class="feature-body">{body}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .section-header {
+    text-align: center;
+    max-width: 680px;
+    margin: 0 auto var(--space-12);
+  }
+
+  .section-eyebrow {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--accent-strong);
+    margin-bottom: var(--space-3);
+  }
+
+  .section-title {
+    font-size: var(--text-3xl);
+    letter-spacing: -0.025em;
+    margin-bottom: var(--space-3);
+  }
+
+  @media (min-width: 768px) {
+    .section-title {
+      font-size: var(--text-4xl);
+    }
+  }
+
+  .section-lede {
+    color: var(--muted);
+    font-size: var(--text-md);
+    line-height: 1.6;
+  }
+
+  .feature-grid {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+
+  @media (min-width: 640px) {
+    .feature-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .feature-grid {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+  }
+
+  .feature {
+    padding: var(--space-6);
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    transition:
+      border-color var(--dur) var(--ease),
+      transform var(--dur) var(--ease),
+      box-shadow var(--dur) var(--ease);
+  }
+
+  .feature:hover {
+    border-color: var(--line-strong);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card);
+  }
+
+  .feature-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: var(--accent-muted);
+    color: var(--accent-strong);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-4);
+  }
+
+  .feature-title {
+    font-size: var(--text-lg);
+    margin-bottom: var(--space-2);
+    letter-spacing: -0.015em;
+  }
+
+  .feature-body {
+    color: var(--muted);
+    font-size: var(--text-sm);
+    line-height: 1.6;
+  }
+</style>

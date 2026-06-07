@@ -1,0 +1,113 @@
+---
+const steps = [
+  {
+    n: "01",
+    title: "Run it",
+    body: "One Docker command. Or `cargo install drive` if you'd rather. SQLite by default — Postgres when you outgrow it.",
+    code: "docker run -p 8080:8080 ghcr.io/schnsrw/casual-drive:latest",
+  },
+  {
+    n: "02",
+    title: "Open it",
+    body: "Visit drive.your-server. Create the admin account. You're in.",
+    code: "https://drive.your-server",
+  },
+  {
+    n: "03",
+    title: "Use it",
+    body: "Upload a file. Click it. Edit it in the browser. Share it. Move it. Search it.",
+    code: null,
+  },
+];
+---
+
+<section id="how" class="section cv-auto">
+  <div class="container">
+    <header class="section-header">
+      <p class="section-eyebrow">How it works</p>
+      <h2 class="section-title">Three steps. No vendor lock-in.</h2>
+      <p class="section-lede">
+        You don't need Kubernetes. You don't need a sales call. You need a
+        server with port 80 free.
+      </p>
+    </header>
+
+    <ol class="how-list">
+      {
+        steps.map((s) => (
+          <li class="how-step">
+            <span class="how-num" aria-hidden="true">
+              {s.n}
+            </span>
+            <div class="how-body">
+              <h3 class="how-title">{s.title}</h3>
+              <p class="how-desc">{s.body}</p>
+              {s.code && (
+                <pre class="how-code"><code>{s.code}</code></pre>
+              )}
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>
+
+<style>
+  .how-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: var(--space-6);
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 768px) {
+    .how-list {
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-5);
+    }
+  }
+
+  .how-step {
+    padding: var(--space-6);
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .how-num {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--accent-strong);
+    letter-spacing: 0.15em;
+    font-weight: 600;
+  }
+
+  .how-title {
+    font-size: var(--text-xl);
+    letter-spacing: -0.015em;
+  }
+
+  .how-desc {
+    color: var(--muted);
+    font-size: var(--text-sm);
+    line-height: 1.6;
+  }
+
+  .how-code {
+    margin-top: auto;
+    padding: var(--space-3) var(--space-4);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    font-size: var(--text-xs);
+    border-radius: var(--radius-sm);
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+</style>

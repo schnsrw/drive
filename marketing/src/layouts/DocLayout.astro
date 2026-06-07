@@ -1,0 +1,355 @@
+---
+/**
+ * Doc page chrome — sidebar + content + meta. MDX pages set frontmatter:
+ *   ---
+ *   title: "Install"
+ *   description: "..."
+ *   layout: ../../layouts/DocLayout.astro
+ *   ---
+ *
+ * Mobile (<1024px): sidebar collapses to a <details> at top.
+ * Desktop: sidebar is sticky left, content is centered.
+ */
+import Base from "./Base.astro";
+
+// MDX pages pass frontmatter under Astro.props.frontmatter; .astro pages
+// can pass title/description directly. Read from both so this layout works
+// for both shapes.
+export interface Props {
+  title?: string;
+  description?: string;
+  frontmatter?: { title?: string; description?: string };
+}
+
+const { frontmatter } = Astro.props;
+const title = Astro.props.title ?? frontmatter?.title ?? "Documentation";
+const description =
+  Astro.props.description ??
+  frontmatter?.description ??
+  "Casual Drive documentation.";
+const path = Astro.url.pathname;
+
+const nav = [
+  { href: "/docs/install", label: "Install" },
+  { href: "/docs/configuration", label: "Configuration" },
+  { href: "/docs/architecture", label: "Architecture" },
+  { href: "/docs/contributing", label: "Contributing" },
+];
+---
+
+<Base title={title} description={description}>
+  <div class="docs-shell">
+    <details class="docs-sidebar-mobile">
+      <summary>
+        On this site
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </summary>
+      <ul class="docs-sidebar-list">
+        {
+          nav.map((n) => (
+            <li>
+              <a
+                href={n.href}
+                class:list={["docs-sidebar-link", path.startsWith(n.href) && "active"]}
+              >
+                {n.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </details>
+
+    <aside class="docs-sidebar" aria-label="Documentation navigation">
+      <p class="docs-sidebar-h">Documentation</p>
+      <ul class="docs-sidebar-list">
+        {
+          nav.map((n) => (
+            <li>
+              <a
+                href={n.href}
+                class:list={["docs-sidebar-link", path.startsWith(n.href) && "active"]}
+              >
+                {n.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </aside>
+
+    <article class="docs-content">
+      <header class="docs-header">
+        <p class="docs-eyebrow">Documentation</p>
+        <h1 class="docs-h1">{title}</h1>
+        <p class="docs-lede">{description}</p>
+      </header>
+      <div class="docs-body">
+        <slot />
+      </div>
+    </article>
+  </div>
+</Base>
+
+<style>
+  .docs-shell {
+    max-width: var(--container);
+    margin-inline: auto;
+    padding: var(--space-8) var(--space-5) var(--space-16);
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+  }
+
+  @media (min-width: 768px) {
+    .docs-shell {
+      padding: var(--space-12) var(--space-8) var(--space-24);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .docs-shell {
+      grid-template-columns: 220px 1fr;
+      gap: var(--space-16);
+    }
+  }
+
+  /* ── Mobile sidebar (≤ 1024) ─────────────────────────────────────── */
+  .docs-sidebar-mobile {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--card);
+  }
+
+  @media (min-width: 1024px) {
+    .docs-sidebar-mobile {
+      display: none;
+    }
+  }
+
+  .docs-sidebar-mobile summary {
+    list-style: none;
+    cursor: pointer;
+    padding: var(--space-3) var(--space-4);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    min-height: 48px;
+    border-radius: var(--radius-md);
+  }
+
+  .docs-sidebar-mobile summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .docs-sidebar-mobile[open] .docs-sidebar-list {
+    padding: var(--space-2);
+    border-top: 1px solid var(--line);
+  }
+
+  /* ── Desktop sidebar (≥ 1024) ────────────────────────────────────── */
+  .docs-sidebar {
+    display: none;
+  }
+
+  @media (min-width: 1024px) {
+    .docs-sidebar {
+      display: block;
+      position: sticky;
+      top: 88px;
+      align-self: start;
+    }
+  }
+
+  .docs-sidebar-h {
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted-2);
+    font-weight: 600;
+    padding: 0 var(--space-3);
+    margin-bottom: var(--space-3);
+  }
+
+  .docs-sidebar-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .docs-sidebar-link {
+    display: block;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    color: var(--muted);
+    transition: background var(--dur-fast) var(--ease);
+    min-height: 36px;
+    line-height: 1.5;
+  }
+
+  .docs-sidebar-link:hover {
+    background: var(--bg-hover);
+    color: var(--ink);
+  }
+
+  .docs-sidebar-link.active {
+    background: var(--accent-muted);
+    color: var(--accent-strong);
+    font-weight: 500;
+  }
+
+  /* ── Content ─────────────────────────────────────────────────────── */
+  .docs-content {
+    min-width: 0;
+    max-width: 760px;
+  }
+
+  .docs-eyebrow {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--accent-strong);
+    margin-bottom: var(--space-3);
+  }
+
+  .docs-h1 {
+    font-size: var(--text-4xl);
+    letter-spacing: -0.03em;
+    margin-bottom: var(--space-3);
+  }
+
+  @media (min-width: 768px) {
+    .docs-h1 {
+      font-size: var(--text-5xl);
+    }
+  }
+
+  .docs-lede {
+    color: var(--muted);
+    font-size: var(--text-lg);
+    line-height: 1.55;
+    margin-bottom: var(--space-8);
+  }
+
+  .docs-header {
+    margin-bottom: var(--space-10);
+    padding-bottom: var(--space-8);
+    border-bottom: 1px solid var(--line);
+  }
+
+  /* MDX content typography. */
+  .docs-body :global(h2) {
+    font-size: var(--text-2xl);
+    margin-top: var(--space-12);
+    margin-bottom: var(--space-4);
+    letter-spacing: -0.02em;
+    scroll-margin-top: 88px;
+  }
+
+  .docs-body :global(h3) {
+    font-size: var(--text-lg);
+    margin-top: var(--space-8);
+    margin-bottom: var(--space-3);
+    color: var(--ink);
+    scroll-margin-top: 88px;
+  }
+
+  .docs-body :global(p),
+  .docs-body :global(ul),
+  .docs-body :global(ol) {
+    margin: var(--space-4) 0;
+    color: var(--ink-soft);
+    line-height: 1.7;
+  }
+
+  .docs-body :global(ul),
+  .docs-body :global(ol) {
+    padding-left: var(--space-5);
+  }
+
+  .docs-body :global(li) {
+    margin: var(--space-2) 0;
+  }
+
+  .docs-body :global(li > ul),
+  .docs-body :global(li > ol) {
+    margin: var(--space-2) 0;
+  }
+
+  .docs-body :global(pre) {
+    margin: var(--space-5) 0;
+    padding: var(--space-4) var(--space-5);
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+    font-size: var(--text-sm);
+    line-height: 1.6;
+  }
+
+  .docs-body :global(a) {
+    color: var(--accent-strong);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--accent-strong) 35%, transparent);
+    text-underline-offset: 3px;
+  }
+
+  .docs-body :global(a:hover) {
+    text-decoration-color: var(--accent-strong);
+  }
+
+  .docs-body :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+    margin: var(--space-6) 0;
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .docs-body :global(th),
+  .docs-body :global(td) {
+    padding: var(--space-3);
+    text-align: left;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+
+  .docs-body :global(th) {
+    color: var(--muted);
+    font-weight: 500;
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: var(--paper-2);
+  }
+
+  .docs-body :global(blockquote) {
+    margin: var(--space-5) 0;
+    padding: var(--space-4) var(--space-5);
+    border-left: 3px solid var(--accent);
+    background: var(--accent-muted);
+    border-radius: var(--radius-sm);
+    color: var(--ink-soft);
+  }
+
+  .docs-body :global(blockquote p) {
+    margin: 0;
+  }
+
+  .docs-body :global(hr) {
+    border: none;
+    border-top: 1px solid var(--line);
+    margin: var(--space-10) 0;
+  }
+</style>
