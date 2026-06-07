@@ -91,6 +91,17 @@ jobs:
           ASTRO_BASE: ${{ vars.MARKETING_SITE_BASE || '' }}
         run: pnpm build
 
+      # ── 3. Lighthouse budgets (mobile profile, must clear ≥ 95) ────────
+      # Runs against the static dist. Fails the build on regressions so
+      # SEO / perf budgets stay enforceable in code review.
+      - name: Build OG image
+        working-directory: marketing
+        run: pnpm og
+
+      - name: Lighthouse CI
+        working-directory: marketing
+        run: npx --yes @lhci/cli@0.14.x autorun --config=./lighthouserc.json
+
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3

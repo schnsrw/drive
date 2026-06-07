@@ -1,6 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /demo
-Disallow: /demo-app/
-
-Sitemap: https://schnsrw.live/sitemap-index.xml

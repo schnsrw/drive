@@ -1,0 +1,60 @@
+[
+  {
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0,
+    "values": [
+      0
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditId": "color-contrast",
+    "level": "warn",
+    "url": "http://localhost:61555/index.html",
+    "auditTitle": "Background and foreground colors do not have a sufficient contrast ratio.",
+    "auditDocumentationLink": "https://dequeuniversity.com/rules/axe/4.9/color-contrast"
+  },
+  {
+    "name": "auditRan",
+    "expected": 1,
+    "actual": 0,
+    "values": [
+      0
+    ],
+    "operator": ">=",
+    "passed": false,
+    "message": "\"tap-targets\" is not a known audit.",
+    "auditId": "tap-targets",
+    "level": "warn",
+    "url": "http://localhost:61555/index.html"
+  },
+  {
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0,
+    "values": [
+      0
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditId": "color-contrast",
+    "level": "warn",
+    "url": "http://localhost:61555/docs/install/index.html",
+    "auditTitle": "Background and foreground colors do not have a sufficient contrast ratio.",
+    "auditDocumentationLink": "https://dequeuniversity.com/rules/axe/4.9/color-contrast"
+  },
+  {
+    "name": "auditRan",
+    "expected": 1,
+    "actual": 0,
+    "values": [
+      0
+    ],
+    "operator": ">=",
+    "passed": false,
+    "message": "\"tap-targets\" is not a known audit.",
+    "auditId": "tap-targets",
+    "level": "warn",
+    "url": "http://localhost:61555/docs/install/index.html"
+  }
+]

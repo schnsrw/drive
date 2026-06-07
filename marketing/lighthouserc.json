@@ -1,0 +1,52 @@
+{
+  "ci": {
+    "collect": {
+      "staticDistDir": "./dist",
+      "url": [
+        "http://localhost/index.html",
+        "http://localhost/docs/install/index.html"
+      ],
+      "numberOfRuns": 1,
+      "settings": {
+        "preset": "desktop",
+        "throttlingMethod": "simulate",
+        "formFactor": "mobile",
+        "screenEmulation": {
+          "mobile": true,
+          "width": 393,
+          "height": 852,
+          "deviceScaleFactor": 2,
+          "disabled": false
+        },
+        "throttling": {
+          "rttMs": 150,
+          "throughputKbps": 1638.4,
+          "cpuSlowdownMultiplier": 4,
+          "requestLatencyMs": 0,
+          "downloadThroughputKbps": 0,
+          "uploadThroughputKbps": 0
+        },
+        "skipAudits": [
+          "is-on-https",
+          "redirects-http",
+          "uses-http2"
+        ]
+      }
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance":   ["error", {"minScore": 0.95}],
+        "categories:accessibility": ["error", {"minScore": 0.95}],
+        "categories:best-practices":["warn",  {"minScore": 0.95}],
+        "categories:seo":           ["error", {"minScore": 0.95}],
+        "uses-responsive-images":   "off",
+        "csp-xss":                  "off",
+        "color-contrast":           ["warn", {}],
+        "tap-targets":              ["warn", {}]
+      }
+    },
+    "upload": {
+      "target": "temporary-public-storage"
+    }
+  }
+}

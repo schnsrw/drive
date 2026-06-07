@@ -9,7 +9,8 @@
     "build": "astro check && astro build",
     "preview": "astro preview",
     "check": "astro check",
-    "format": "prettier --write \"src/**/*.{astro,ts,tsx,mdx,css}\""
+    "format": "prettier --write \"src/**/*.{astro,ts,tsx,mdx,css}\"",
+    "og": "node scripts/build-og.mjs"
   },
   "dependencies": {
     "astro": "^5.7.0",
