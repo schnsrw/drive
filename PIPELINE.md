@@ -94,7 +94,7 @@
 |---|---|---|---|---|
 | 5.1 | Procedural thumbnails | ✅ done | P0 | client-rendered, type-tinted, all kinds |
 | 5.2 | Client-side image-thumbnail creation on upload (canvas → base64) | ✅ done | P1 | `generateThumbnail()`; stored on the file row, served back in list |
-| 5.3 | Client-side video-poster thumbnail on upload | ⬜ todo | P2 | first-frame capture |
+| 5.3 | Client-side video-poster thumbnail on upload | ✅ done | P2 | `generateThumbnail` handles `video/mp4|webm|quicktime|ogg`: hidden `<video>` → seek to 10% → canvas → same encode pipeline. 5s timeouts on metadata/seek so broken codecs don't hang the queue |
 | 5.4 | Server-side thumbnail worker (sandboxed; images / PDFs / videos) | ⏸ v0.2+ | — | needs sandboxed image worker per security brief |
 | 5.5 | Thumbnail cache (CDN-cacheable URLs) | ⏸ v0.2+ | — | depends on 5.4 |
 
@@ -107,7 +107,7 @@
 | 6.3 | Per-request body limit (env) | ✅ done | P0 | `DRIVE_BODY_LIMIT_MB` |
 | 6.4 | Per-user storage quota | ✅ done | P1 | `users.quota_bytes`; upload returns 413 + admin allocates via `/api/admin/users/{id}/quota` |
 | 6.5 | Rate limit on upload endpoint | ✅ done | P1 | in-process token bucket per user (`RateLimiter`); returns 429 + `Retry-After` |
-| 6.6 | Concurrent upload cap (client) | ⬜ todo | P2 | 4-at-a-time queue |
+| 6.6 | Concurrent upload cap (client) | ✅ done | P2 | new `mapWithConcurrency` worker pool replaces unbounded `Promise.allSettled`; 4 lanes, matches the server's per-user rate limit so 20-file drops batch instead of bursting |
 | 6.7 | Resumable upload (tus.io) | ⏸ v0.2+ | — | not Phase 1 |
 | 6.8 | Virus-scan hook (ClamAV) | 🟦 stub | P2 | adapter trait + no-op default at minimum |
 
