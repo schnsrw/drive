@@ -1,28 +1,33 @@
 ---
 /**
- * Screenshot showcase — tabbed device frame. Currently three slots; real
- * screenshots drop into public/screenshots/ once the SPA is in a state
- * worth capturing. Until then the slot renders a styled placeholder
- * (per docs/ux/14 "State checklists: empty has a real-content stub").
+ * Screenshot showcase — tabbed device frame. Sources are captured by
+ * web/tests/e2e/marketing-screenshots.mjs against the demo SPA build, so
+ * the assets stay in lock-step with the actual surface.
  */
 const shots = [
   {
     id: "files",
     label: "Files",
-    src: "/screenshots/files-dark.png",
-    alt: "Casual Drive — file list in dark mode, showing folders and recent files",
+    src: "/screenshots/files-list.png",
+    alt: "Casual Drive — file list showing folders, an .xlsx, .docx, PDF and a video",
   },
   {
-    id: "editor",
-    label: "Editor",
-    src: "/screenshots/editor-xlsx.png",
-    alt: "Casual Sheet opened from Drive via WOPI, editing a budget spreadsheet",
+    id: "notes",
+    label: "Notes",
+    src: "/screenshots/notes.png",
+    alt: "Notes / Wiki surface — page tree on the left and a markdown editor with live preview",
   },
   {
-    id: "sharing",
-    label: "Sharing",
-    src: "/screenshots/share-dialog.png",
-    alt: "Share dialog with password and expiry options on a file",
+    id: "admin",
+    label: "Admin",
+    src: "/screenshots/admin-users.png",
+    alt: "Admin → Users surface — users table with per-user quota controls",
+  },
+  {
+    id: "storage",
+    label: "Storage",
+    src: "/screenshots/settings-storage.png",
+    alt: "Settings → Storage — backend readout, usage, and the bring-your-own bucket card",
   },
 ];
 ---

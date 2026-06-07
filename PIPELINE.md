@@ -209,7 +209,7 @@ Spec: [[07-marketing-site]] + [[14-marketing-surface]]. Astro 5, multi-page docs
 | 15.4 | `/screenshots` gallery | ✅ done | P1 | placeholder tiles until real shots drop into public/screenshots/ |
 | 15.5 | `/demo` route (iframe → /demo-app/ bundle) | ✅ done | P0 | noindex; SPA built with `VITE_BASE=/demo-app/` |
 | 15.6 | GitHub Actions workflow (build SPA + Astro, deploy Pages) | ✅ done | P0 | replaces prior SPA-only deploy; fetches Inter fonts in CI |
-| 15.7 | Capture + commit real screenshots | ⬜ todo | P1 | placeholders gracefully fall back today |
+| 15.7 | Capture + commit real screenshots | ✅ done | P1 | Playwright harness `web/tests/e2e/marketing-screenshots.mjs` (also exposed as `pnpm screenshots` from web/) drives the demo SPA across Files / Notes / Sharing / Settings / Admin / Activity, light theme + mobile viewport. 7 PNGs in `marketing/public/screenshots/`; gallery + landing showcase wired to them |
 | 15.8 | Pre-built OG image at `/og/default.png` (1200×630) | ⬜ todo | P1 | links currently fall back to text card |
 | 15.9 | Lighthouse CI job in workflow (target P/A/B/S ≥ 95) | ⬜ todo | P2 | enforces the perf budget in CR |
 | 15.10 | Pagefind-powered docs search | ⏸ v0.2+ | — | pages are few enough for Cmd-F today |

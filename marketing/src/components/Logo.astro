@@ -1,29 +1,39 @@
 ---
 /**
- * Casual Drive wordmark/glyph. Inline SVG → zero requests, scales perfectly.
+ * Casual Drive mark — black rounded square with a cream cloud silhouette.
+ * Source of truth: web/src/components/Logo.tsx + web/public/favicon.svg.
+ * The square uses `currentColor`; the cloud uses `--mark-fg` (defaults to
+ * the brand cream) so callers can recolour either independently.
  */
 export interface Props {
   size?: number;
+  className?: string;
 }
-const { size = 24 } = Astro.props;
+const { size = 32, className } = Astro.props;
+const clipId = `cd-mark-${Math.floor(Math.random() * 1e9).toString(36)}`;
 ---
 
 <svg
+  viewBox="0 0 38 38"
   width={size}
   height={size}
-  viewBox="0 0 32 32"
-  fill="none"
-  xmlns="http://www.w3.org/2000/svg"
-  aria-hidden="true"
   role="img"
+  aria-label="Casual Drive"
+  class={className}
+  style={{ display: "block", color: "var(--ink)" }}
 >
-  <rect x="2" y="2" width="28" height="28" rx="8" fill="var(--ink)" />
-  <path
-    d="M9 11.5C9 10.1193 10.1193 9 11.5 9H20.5C21.8807 9 23 10.1193 23 11.5V20.5C23 21.8807 21.8807 23 20.5 23H11.5C10.1193 23 9 21.8807 9 20.5V11.5Z"
-    fill="var(--accent)"
-  />
-  <path
-    d="M13.5 14L18.5 16L13.5 18V14Z"
-    fill="var(--ink)"
-  />
+  <defs>
+    <clipPath id={clipId}>
+      <rect width="38" height="38" rx="10"></rect>
+    </clipPath>
+  </defs>
+  <g clip-path={`url(#${clipId})`}>
+    <rect width="38" height="38" fill="currentColor"></rect>
+    <g fill="var(--mark-fg, var(--paper, #F2F0EA))">
+      <circle cx="12" cy="22" r="5"></circle>
+      <circle cx="26" cy="22" r="5"></circle>
+      <circle cx="19" cy="15" r="7.5"></circle>
+      <rect x="12" y="22" width="14" height="5"></rect>
+    </g>
+  </g>
 </svg>

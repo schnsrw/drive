@@ -1,1 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect x="2" y="2" width="28" height="28" rx="8" fill="#1a1a1e"/><path d="M9 11.5C9 10.1193 10.1193 9 11.5 9H20.5C21.8807 9 23 10.1193 23 11.5V20.5C23 21.8807 21.8807 23 20.5 23H11.5C10.1193 23 9 21.8807 9 20.5V11.5Z" fill="#c8a45c"/><path d="M13.5 14L18.5 16L13.5 18V14Z" fill="#1a1a1e"/></svg>
+<svg viewBox="0 0 172 172" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>Casual Drive</title>
+  <defs>
+    <clipPath id="cd-fav">
+      <rect x="0" y="0" width="172" height="172" rx="40"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#cd-fav)">
+    <rect width="172" height="172" fill="#16161A"/>
+    <g fill="#F5F3EE">
+      <circle cx="54"  cy="100" r="23"/>
+      <circle cx="118" cy="100" r="23"/>
+      <circle cx="86"  cy="68"  r="34"/>
+      <rect   x="54"   y="100"  width="64" height="23"/>
+    </g>
+  </g>
+</svg>

@@ -7,35 +7,36 @@
  */
 import Base from "../layouts/Base.astro";
 
+// Sources are captured by web/tests/e2e/marketing-screenshots.mjs against
+// the demo SPA — re-run that harness after any UI change so this gallery
+// stays in lock-step. Filenames intentionally omit a theme suffix because
+// the SPA is single-theme today.
 const sections = [
   {
     h: "Files",
     shots: [
-      { src: "/screenshots/files-light.png", alt: "Files list in light theme" },
-      { src: "/screenshots/files-dark.png", alt: "Files list in dark theme" },
-      { src: "/screenshots/files-mobile.png", alt: "Files list on mobile" },
+      { src: "/screenshots/files-list.png", alt: "Files list with folders, an .xlsx, .docx, PDF, and a video" },
+      { src: "/screenshots/files-mobile.png", alt: "Files list on mobile (393×852)" },
     ],
   },
   {
-    h: "Editor handoff",
+    h: "Notes / Wiki",
     shots: [
-      { src: "/screenshots/editor-xlsx.png", alt: "Casual Sheet opened from Drive" },
-      { src: "/screenshots/editor-docx.png", alt: "Casual Document opened from Drive" },
+      { src: "/screenshots/notes.png", alt: "Notes — page tree on the left, markdown editor + live preview" },
     ],
   },
   {
     h: "Sharing",
     shots: [
-      { src: "/screenshots/share-dialog.png", alt: "Share dialog with password + expiry" },
-      { src: "/screenshots/share-recipient.png", alt: "Recipient view of a shared file" },
+      { src: "/screenshots/share-dialog.png", alt: "Per-file kebab menu with Share, Rename, Download, Trash" },
     ],
   },
   {
     h: "Settings + Admin",
     shots: [
-      { src: "/screenshots/settings-storage.png", alt: "Settings → Storage with quota readout" },
-      { src: "/screenshots/admin-users.png", alt: "Admin → Users management" },
-      { src: "/screenshots/audit-log.png", alt: "Audit log with recent events" },
+      { src: "/screenshots/settings-storage.png", alt: "Settings → Storage with backend readout + bring-your-own bucket card" },
+      { src: "/screenshots/admin-users.png", alt: "Admin → Users management with per-user quotas" },
+      { src: "/screenshots/activity.png", alt: "Activity feed of recent audit events" },
     ],
   },
 ];
