@@ -203,6 +203,7 @@ async fn files_insert_list_rename_overwrite_trash_restore() {
             etag: None,
             owner_id: owner.clone(),
             workspace_id: ws.clone(),
+            storage_id: None,
             thumbnail: None,
         })
         .await
@@ -325,6 +326,7 @@ async fn files_and_folders_are_workspace_scoped() {
             etag: None,
             owner_id: owner.clone(),
             workspace_id: personal.clone(),
+            storage_id: None,
             thumbnail: None,
         })
         .await
@@ -339,6 +341,7 @@ async fn files_and_folders_are_workspace_scoped() {
             etag: None,
             owner_id: owner.clone(),
             workspace_id: team.clone(),
+            storage_id: None,
             thumbnail: None,
         })
         .await

@@ -8,7 +8,7 @@ use drive_auth::AuthState;
 use drive_core::Config;
 use drive_db::{Db, DbError, NewUser, UserRepo};
 use drive_http::{router, HttpState};
-use drive_storage::Storage;
+use drive_storage::{parse_master_key_hex, Storage};
 use drive_wopi::WopiState;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
@@ -38,6 +38,28 @@ async fn main() -> anyhow::Result<()> {
     let cookie_secure = cfg.app_origin.scheme() == "https";
     let auth = AuthState::new(db.clone(), cookie_secure, time::Duration::hours(24));
 
+    // BYO storage master key. Optional in v0 — workspaces with BYO can't be
+    // configured without it, but the rest of the app runs fine. The /api
+    // handler that saves a BYO config refuses with 503 if the key is absent.
+    let storage_secret_key = match std::env::var("DRIVE_STORAGE_SECRET_KEY") {
+        Ok(hex) => {
+            Some(Arc::new(parse_master_key_hex(&hex).map_err(|e| {
+                anyhow::anyhow!("DRIVE_STORAGE_SECRET_KEY: {e}")
+            })?))
+        }
+        Err(_) => {
+            if cfg.is_prod {
+                tracing::warn!(
+                    "DRIVE_STORAGE_SECRET_KEY not set — bring-your-own storage \
+                     will be rejected. Generate with `openssl rand -hex 32`."
+                );
+            }
+            None
+        }
+    };
+
+    let registry = HttpState::default_registry(storage.clone(), cfg.signed_url_hmac_secret);
+
     let state = HttpState {
         storage,
         wopi: WopiState::new(),
@@ -46,6 +68,8 @@ async fn main() -> anyhow::Result<()> {
         jwt_secret: Arc::new(cfg.wopi_hmac_secret),
         config: Arc::new(cfg),
         upload_limiter: HttpState::default_upload_limiter(),
+        registry,
+        storage_secret_key,
     };
 
     let app = router(state).layer(tower_http::trace::TraceLayer::new_for_http());

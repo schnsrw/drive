@@ -7,6 +7,7 @@ import { ArrowUpCircle, HardDrive, Server } from "lucide-react";
 import { toast } from "sonner";
 
 import { me as fetchMe, requestQuotaUpgrade, type Me } from "../../api/client.ts";
+import { WorkspaceStorageCard } from "../../components/WorkspaceStorageCard.tsx";
 import { SettingsCard, SettingsHeader } from "./SettingsHeader.tsx";
 
 export function StorageSection() {
@@ -74,6 +75,8 @@ export function StorageSection() {
           </>
         )}
       </SettingsCard>
+
+      <WorkspaceStorageCard />
     </>
   );
 }

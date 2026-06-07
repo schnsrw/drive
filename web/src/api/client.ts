@@ -471,6 +471,92 @@ export async function transferWorkspace(id: string, newOwnerId: string): Promise
   });
 }
 
+// ─── Workspace storage (BYO) — pipeline §8.9 ──────────────────────────
+
+export type ByoProvider = "s3" | "minio" | "r2" | "b2";
+
+export interface ByoStatusDefault {
+  kind: "default";
+}
+
+export interface ByoStatusActive {
+  kind: "byo";
+  id: string;
+  provider: ByoProvider;
+  bucket: string;
+  region: string;
+  endpoint: string | null;
+  access_key_id_masked: string;
+  secret_masked: string;
+  key_version: number;
+  tested_at: string | null;
+  tested_ok: boolean;
+  tested_error: string | null;
+}
+
+export type ByoStatus = ByoStatusDefault | ByoStatusActive;
+
+export interface ByoConfigInput {
+  provider: ByoProvider;
+  bucket: string;
+  region: string;
+  endpoint?: string;
+  access_key_id: string;
+  secret_access_key: string;
+}
+
+export interface ByoTestResult {
+  ok: boolean;
+  latency_ms?: number;
+  error?: string;
+}
+
+export async function getWorkspaceStorage(id: string): Promise<ByoStatus> {
+  return request<ByoStatus>(
+    `/api/workspaces/${encodeURIComponent(id)}/storage`,
+  );
+}
+
+export async function testWorkspaceStorage(
+  id: string,
+  cfg: ByoConfigInput,
+): Promise<ByoTestResult> {
+  return request<ByoTestResult>(
+    `/api/workspaces/${encodeURIComponent(id)}/storage/test`,
+    { method: "POST", json: cfg },
+  );
+}
+
+export async function saveWorkspaceStorage(
+  id: string,
+  cfg: ByoConfigInput,
+): Promise<ByoStatusActive> {
+  return request<ByoStatusActive>(
+    `/api/workspaces/${encodeURIComponent(id)}/storage`,
+    { method: "PUT", json: cfg },
+  );
+}
+
+export async function replaceWorkspaceStorageCredentials(
+  id: string,
+  accessKeyId: string,
+  secretAccessKey: string,
+): Promise<void> {
+  await request<void>(
+    `/api/workspaces/${encodeURIComponent(id)}/storage/credentials`,
+    {
+      method: "PATCH",
+      json: { access_key_id: accessKeyId, secret_access_key: secretAccessKey },
+    },
+  );
+}
+
+export async function removeWorkspaceStorage(id: string): Promise<void> {
+  await request<void>(`/api/workspaces/${encodeURIComponent(id)}/storage`, {
+    method: "DELETE",
+  });
+}
+
 // ─── Global search ────────────────────────────────────────────────────
 
 export async function searchAll(

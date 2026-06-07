@@ -62,6 +62,8 @@ hmac              = "0.12"
 sha2              = "0.10"
 subtle            = "2"
 base64            = "0.22"
+aes-gcm           = { version = "0.10", default-features = false, features = ["aes", "alloc"] }
+rand              = "0.9"
 
 # Database
 sqlx              = { version = "0.8", default-features = false, features = ["runtime-tokio", "macros", "any", "sqlite", "postgres", "time", "uuid", "migrate"] }

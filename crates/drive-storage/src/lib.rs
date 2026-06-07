@@ -6,6 +6,19 @@
 
 #![forbid(unsafe_code)]
 
+pub mod byo;
+pub mod registry;
+pub mod secret_box;
+
+pub use byo::{
+    build_operator, ssrf_guard, test_connection, validate_shape as validate_shape_, ByoConfig,
+    ByoError, Provider,
+};
+pub use registry::StorageRegistry;
+pub use secret_box::{
+    open as open_secret, parse_master_key_hex, seal as seal_secret, SecretBoxError,
+};
+
 use std::{ops::Range, sync::Arc, time::Duration as StdDuration};
 
 use bytes::Bytes;

@@ -1,6 +1,8 @@
 # 15 — Bring-your-own storage surface
 
-Companion to `docs/research/08-byo-storage.md`. Settings → Workspace → Storage card. Owner-only.
+Companion to `docs/research/08-byo-storage.md`. Settings → Storage → Workspace bucket card. Owner-only on Team workspaces.
+
+> **Shipped:** schema + storage registry + 5 owner-only endpoints + `WorkspaceStorageCard` under Settings → Storage. Per-workspace S3/MinIO/R2/B2 with AES-256-GCM secret envelope (`DRIVE_STORAGE_SECRET_KEY`, 64 hex chars) and SSRF guard. New uploads route via the workspace's BYO adapter when configured; existing files keep their `storage_id` pointer.
 
 ## Flow
 

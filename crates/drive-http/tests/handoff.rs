@@ -56,6 +56,7 @@ async fn fixture(with_editors: bool) -> HttpState {
         document_origin: with_editors.then(|| Url::parse("http://document.test").unwrap()),
     };
     let auth = AuthState::new(db.clone(), false, time::Duration::hours(1));
+    let registry = HttpState::default_registry(storage.clone(), [0u8; 32]);
     HttpState {
         storage,
         wopi: WopiState::new(),
@@ -64,6 +65,8 @@ async fn fixture(with_editors: bool) -> HttpState {
         jwt_secret: Arc::new([2u8; 32]),
         config: Arc::new(cfg),
         upload_limiter: HttpState::default_upload_limiter(),
+        registry,
+        storage_secret_key: None,
     }
 }
 
@@ -124,6 +127,7 @@ async fn seed_file(state: &HttpState, name: &str, content_type: &str) -> String 
             etag: None,
             owner_id: owner,
             workspace_id: ws,
+            storage_id: None,
             thumbnail: None,
         })
         .await

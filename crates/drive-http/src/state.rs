@@ -6,7 +6,7 @@ use axum::extract::FromRef;
 use drive_auth::AuthState;
 use drive_core::Config;
 use drive_db::Db;
-use drive_storage::Storage;
+use drive_storage::{Storage, StorageRegistry};
 use drive_wopi::WopiState;
 
 use crate::rate_limit::{RateLimitConfig, RateLimiter};
@@ -33,6 +33,13 @@ pub struct HttpState {
     /// `HttpState::with_default_upload_limit` so call sites don't have
     /// to know the numbers.
     pub upload_limiter: Arc<RateLimiter>,
+    /// Resolves the right storage adapter per file (pipeline §8.9).
+    /// Wraps `storage` as the default + caches per-workspace BYO adapters.
+    pub registry: Arc<StorageRegistry>,
+    /// AES-256-GCM master key for sealing workspace storage secrets.
+    /// `None` in tests + the dev path; required at boot in production
+    /// when any workspace has BYO storage configured.
+    pub storage_secret_key: Option<Arc<[u8; 32]>>,
 }
 
 impl HttpState {
@@ -45,6 +52,19 @@ impl HttpState {
             capacity: 30.0,
             refill_per_sec: 0.5,
         }))
+    }
+
+    /// Build a `StorageRegistry` wrapping the given default storage.
+    /// Tests that don't exercise BYO can use this — they get a registry
+    /// with the same signing key, no cached BYO adapters.
+    ///
+    /// In production the binary builds this once at boot and stores it
+    /// in `HttpState`; handlers go through `state.registry.for_byo(...)`
+    /// (when a file's `storage_id` is set) or
+    /// `state.registry.default_storage()` (when it isn't).
+    #[must_use]
+    pub fn default_registry(storage: Storage, sign_key: [u8; 32]) -> Arc<StorageRegistry> {
+        Arc::new(StorageRegistry::new(Arc::new(storage), sign_key))
     }
 }
 

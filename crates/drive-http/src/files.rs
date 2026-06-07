@@ -722,13 +722,6 @@ async fn upload_file(
         }
     }
 
-    let id = ulid::Ulid::new().to_string();
-    let meta = s
-        .storage
-        .put(&storage_key(&id), bytes, content_type.as_deref())
-        .await
-        .map_err(|e| FilesError::Internal(e.to_string()))?;
-
     let workspace_id = crate::workspaces::resolve_active_workspace(
         &s.db,
         &session.user_id,
@@ -736,6 +729,20 @@ async fn upload_file(
     )
     .await
     .map_err(|e| FilesError::Internal(format!("workspace: {e:?}")))?;
+
+    // Pipeline §8.9 — route the bytes to the workspace's BYO bucket if
+    // it has one configured + the secret can be decrypted. Personal
+    // workspaces never have one. A BYO row whose secret won't decrypt
+    // (master key rotated, envelope corrupted) is a hard failure: we'd
+    // rather refuse the upload than silently write to the host's bucket.
+    let (storage, storage_id) =
+        crate::workspace_storage::resolve_upload_storage(&s, &workspace_id).await?;
+
+    let id = ulid::Ulid::new().to_string();
+    let meta = storage
+        .put(&storage_key(&id), bytes, content_type.as_deref())
+        .await
+        .map_err(|e| FilesError::Internal(e.to_string()))?;
 
     let file = FileRepo::new(&s.db)
         .insert(&NewFile {
@@ -753,6 +760,7 @@ async fn upload_file(
             etag: meta.etag,
             owner_id: session.user_id.clone(),
             workspace_id,
+            storage_id,
             thumbnail,
         })
         .await

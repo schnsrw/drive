@@ -15,6 +15,7 @@ mod pool;
 mod sessions;
 mod share_links;
 mod users;
+mod workspace_storage;
 mod workspaces;
 
 pub use audit::{AuditEvent, AuditRepo, NewAuditEvent};
@@ -25,6 +26,9 @@ pub use pool::{Db, DbBackend};
 pub use sessions::{NewSession, Session, SessionRepo};
 pub use share_links::{NewShareLink, ShareLink, ShareLinkRepo};
 pub use users::{NewUser, User, UserRepo};
+pub use workspace_storage::{
+    NewWorkspaceStorage, WorkspaceStorage, WorkspaceStorageProvider, WorkspaceStorageRepo,
+};
 pub use workspaces::{
     Workspace, WorkspaceKind, WorkspaceMemberRepo, WorkspaceMembership, WorkspaceRepo,
     WorkspaceRole, WorkspaceWithRole,
