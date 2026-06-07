@@ -51,6 +51,37 @@ interface DemoEvent {
 const STATE_KEY = "cd-demo-state-v1";
 const blobs: Map<string, Blob> = new Map();
 
+// Seeded workspaces for the demo. Kept in-memory (not persisted)
+// because the demo's workspaces are just for showing off the switcher.
+const demoWorkspaces: Array<{
+  id: string;
+  name: string;
+  kind: "personal" | "team";
+  owner_id: string;
+  role: "owner" | "member";
+  member_count: number;
+  created_at: string;
+}> = [
+  {
+    id: "wsp_personal_demo",
+    name: "Personal",
+    kind: "personal",
+    owner_id: "demo-user",
+    role: "owner",
+    member_count: 1,
+    created_at: "2026-06-01T00:00:00Z",
+  },
+  {
+    id: "wsp_team_demo",
+    name: "Casual Demo",
+    kind: "team",
+    owner_id: "demo-user",
+    role: "owner",
+    member_count: 1,
+    created_at: "2026-06-01T00:00:00Z",
+  },
+];
+
 const state: DemoState = loadState();
 // Seed in-memory content for the seeded files so the Preview Modal has
 // real bytes to render. Uploads add their own blobs as the user goes.
@@ -407,6 +438,33 @@ export async function demoRequest<T>(path: string, init: RequestInit & { json?: 
         .filter((f) => f.name.toLowerCase().includes(q))
         .slice(0, limit),
     } as unknown as T;
+  }
+  // Workspaces — demo has Personal + one seeded Team workspace ("Demo")
+  // with the demo user as Owner of both. Create/rename/transfer are
+  // shimmed in-memory.
+  if (p === "/api/workspaces" && method === "GET") {
+    if (!state.signedIn) throw makeError(401, "not signed in");
+    return {
+      current_id: demoWorkspaces[0]?.id ?? "",
+      workspaces: demoWorkspaces,
+    } as unknown as T;
+  }
+  if (p === "/api/workspaces" && method === "POST") {
+    if (!state.signedIn) throw makeError(401, "not signed in");
+    const body = init.json as { name?: string };
+    const name = (body?.name ?? "").trim();
+    if (name.length < 2) throw makeError(400, "workspace name must be 2–60 characters");
+    const w = {
+      id: nextId("ws"),
+      name,
+      kind: "team" as const,
+      owner_id: "demo-user",
+      role: "owner" as const,
+      member_count: 1,
+      created_at: nowIso(),
+    };
+    demoWorkspaces.push(w);
+    return w as unknown as T;
   }
   if (p === "/api/admin/system" && method === "GET") {
     if (!state.signedIn) throw makeError(401, "not signed in");

@@ -366,6 +366,54 @@ export async function getAdminSystem(): Promise<AdminSystem> {
   return request<AdminSystem>("/api/admin/system");
 }
 
+// ─── Workspaces ───────────────────────────────────────────────────────
+
+export interface Workspace {
+  id: string;
+  name: string;
+  kind: "personal" | "team";
+  owner_id: string;
+  role: "owner" | "member";
+  member_count: number;
+  created_at: string;
+}
+
+export interface WorkspaceListResp {
+  current_id: string;
+  workspaces: Workspace[];
+}
+
+export async function listWorkspaces(): Promise<WorkspaceListResp> {
+  return request<WorkspaceListResp>("/api/workspaces");
+}
+
+export async function createWorkspace(name: string): Promise<Workspace> {
+  return request<Workspace>("/api/workspaces", {
+    method: "POST",
+    json: { name },
+  });
+}
+
+export async function renameWorkspace(id: string, name: string): Promise<void> {
+  await request<void>(`/api/workspaces/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    json: { name },
+  });
+}
+
+export async function deleteWorkspace(id: string): Promise<void> {
+  await request<void>(`/api/workspaces/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function transferWorkspace(id: string, newOwnerId: string): Promise<void> {
+  await request<void>(`/api/workspaces/${encodeURIComponent(id)}/transfer`, {
+    method: "POST",
+    json: { new_owner_id: newOwnerId },
+  });
+}
+
 // ─── Global search ────────────────────────────────────────────────────
 
 export async function searchAll(

@@ -19,6 +19,7 @@ mod search;
 mod share;
 mod spa;
 mod state;
+mod workspaces;
 
 pub use rate_limit::{RateLimitConfig, RateLimiter};
 pub use state::HttpState;
@@ -97,6 +98,7 @@ fn app_origin_router(state: HttpState) -> Router {
         .saturating_mul(1024);
     let files_router: Router = files::router(state.clone(), body_limit_bytes);
     let share_router: Router = share::router(state.clone());
+    let workspaces_router: Router = workspaces::router(state.clone());
 
     Router::new()
         .route("/healthz", get(healthz))
@@ -110,6 +112,7 @@ fn app_origin_router(state: HttpState) -> Router {
         .merge(auth_router)
         .merge(files_router)
         .merge(share_router)
+        .merge(workspaces_router)
         // SPA fallback — `/`, `/sign-in`, `/files/...`, hashed asset paths
         // — anything not matched above is served from the embedded `web/dist/`.
         .fallback(spa::serve)

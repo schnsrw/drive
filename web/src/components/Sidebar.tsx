@@ -1,8 +1,6 @@
 import { useState } from "react";
 import {
   Activity,
-  Building2,
-  ChevronDown,
   Clock,
   FolderClosed,
   Gauge,
@@ -18,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { Logo, Wordmark } from "./Logo.tsx";
+import { WorkspaceSwitcher as RealWorkspaceSwitcher } from "./WorkspaceSwitcher.tsx";
 
 export type NavId =
   | "home"
@@ -94,7 +93,7 @@ export function Sidebar({
         <Wordmark />
       </div>
 
-      <WorkspaceSwitcher />
+      <RealWorkspaceSwitcher />
 
       <div style={{ position: "relative", marginTop: 12, marginBottom: 14 }}>
         <button
@@ -187,67 +186,8 @@ export function Sidebar({
   );
 }
 
-function WorkspaceSwitcher() {
-  return (
-    <button
-      type="button"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        width: "100%",
-        padding: "10px 12px",
-        background: "var(--card)",
-        border: "1px solid var(--line)",
-        borderRadius: 11,
-        cursor: "pointer",
-        fontFamily: "var(--font-sans)",
-        fontSize: "var(--text-sm)",
-        fontWeight: 500,
-        color: "var(--ink)",
-        textAlign: "left",
-        transition: "background 150ms, border-color 150ms",
-      }}
-      onMouseOver={(e) => {
-        e.currentTarget.style.background = "var(--bg-hover)";
-        e.currentTarget.style.borderColor = "var(--line-strong)";
-      }}
-      onMouseOut={(e) => {
-        e.currentTarget.style.background = "var(--card)";
-        e.currentTarget.style.borderColor = "var(--line)";
-      }}
-      title="Switch workspace (coming in v0.2)"
-    >
-      <span
-        style={{
-          width: 24,
-          height: 24,
-          borderRadius: 6,
-          background: "var(--ink)",
-          color: "var(--paper)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <Building2 size={14} strokeWidth={1.8} />
-      </span>
-      <span
-        style={{
-          flex: 1,
-          minWidth: 0,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-      >
-        Personal
-      </span>
-      <ChevronDown size={14} style={{ color: "var(--muted)", flexShrink: 0 }} />
-    </button>
-  );
-}
+// The real switcher lives in WorkspaceSwitcher.tsx; this stub was
+// removed once the workspaces API landed.
 
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (

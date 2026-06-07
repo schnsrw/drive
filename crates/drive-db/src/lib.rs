@@ -15,6 +15,7 @@ mod pool;
 mod sessions;
 mod share_links;
 mod users;
+mod workspaces;
 
 pub use audit::{AuditEvent, AuditRepo, NewAuditEvent};
 pub use error::DbError;
@@ -24,3 +25,7 @@ pub use pool::{Db, DbBackend};
 pub use sessions::{NewSession, Session, SessionRepo};
 pub use share_links::{NewShareLink, ShareLink, ShareLinkRepo};
 pub use users::{NewUser, User, UserRepo};
+pub use workspaces::{
+    Workspace, WorkspaceKind, WorkspaceMemberRepo, WorkspaceMembership, WorkspaceRepo,
+    WorkspaceRole, WorkspaceWithRole,
+};

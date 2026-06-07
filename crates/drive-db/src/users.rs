@@ -4,7 +4,7 @@
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
 
-use crate::{Db, DbError};
+use crate::{workspaces::WorkspaceRepo, Db, DbError, WorkspaceKind};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
@@ -54,6 +54,13 @@ impl<'a> UserRepo<'a> {
         .execute(self.db.pool())
         .await
         .map_err(map_unique_violation)?;
+
+        // Auto-create the Personal workspace (1-to-1 with the user). Spec:
+        // docs/ux/13-workspaces-surface.md. We refuse to ship a user
+        // without a workspace, so this is `?`, not `let _`.
+        WorkspaceRepo::new(self.db)
+            .insert("Personal", WorkspaceKind::Personal, &id)
+            .await?;
 
         Ok(User {
             id,
