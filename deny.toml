@@ -28,6 +28,9 @@ allow = [
     # tiny-keccak (transitive via opendal → reqsign → rust-ini → ...) is CC0.
     # CC0 is a permissive public-domain dedication, OSI-recognized via review.
     "CC0-1.0",
+    # webpki-roots is CDLA-Permissive-2.0 (Mozilla CA bundle). Pulled in via
+    # reqwest → openidconnect. Permissive license, no copyleft.
+    "CDLA-Permissive-2.0",
 ]
 confidence-threshold = 0.93
 exceptions = []

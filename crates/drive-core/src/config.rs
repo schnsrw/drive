@@ -321,8 +321,8 @@ fn load_oidc_from_env() -> Result<Option<OidcConfig>, ConfigError> {
     if issuer_str.is_empty() {
         return Ok(None);
     }
-    let issuer =
-        Url::parse(&issuer_str).map_err(|e| ConfigError::Invalid("DRIVE_OIDC_ISSUER", e.to_string()))?;
+    let issuer = Url::parse(&issuer_str)
+        .map_err(|e| ConfigError::Invalid("DRIVE_OIDC_ISSUER", e.to_string()))?;
     let client_id = std::env::var("DRIVE_OIDC_CLIENT_ID")
         .map_err(|_| ConfigError::Missing("DRIVE_OIDC_CLIENT_ID"))?;
     let client_secret = std::env::var("DRIVE_OIDC_CLIENT_SECRET")
@@ -330,7 +330,8 @@ fn load_oidc_from_env() -> Result<Option<OidcConfig>, ConfigError> {
     let redirect_url = std::env::var("DRIVE_OIDC_REDIRECT_URL")
         .map_err(|_| ConfigError::Missing("DRIVE_OIDC_REDIRECT_URL"))
         .and_then(|s| {
-            Url::parse(&s).map_err(|e| ConfigError::Invalid("DRIVE_OIDC_REDIRECT_URL", e.to_string()))
+            Url::parse(&s)
+                .map_err(|e| ConfigError::Invalid("DRIVE_OIDC_REDIRECT_URL", e.to_string()))
         })?;
     let scopes: Vec<String> = std::env::var("DRIVE_OIDC_SCOPES")
         .unwrap_or_else(|_| "openid email profile".into())
@@ -341,8 +342,8 @@ fn load_oidc_from_env() -> Result<Option<OidcConfig>, ConfigError> {
         .ok()
         .filter(|s| !s.is_empty());
     let auto_create_users = env_bool("DRIVE_OIDC_AUTO_CREATE_USERS").unwrap_or(true);
-    let provider_label =
-        std::env::var("DRIVE_OIDC_PROVIDER_LABEL").unwrap_or_else(|_| "your identity provider".into());
+    let provider_label = std::env::var("DRIVE_OIDC_PROVIDER_LABEL")
+        .unwrap_or_else(|_| "your identity provider".into());
     // Stable id; defaults to a short hash of the issuer URL so two
     // deployments pointing at different IdPs don't collide on the
     // `users.oidc_provider_id` unique index.

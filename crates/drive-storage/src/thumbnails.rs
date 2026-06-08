@@ -257,8 +257,8 @@ impl SubprocessWorker {
         // Write the input to a temp file the worker can open. We pass
         // by path (not pipe) so the JSON payload stays small and the
         // worker can `O_NOFOLLOW` cleanly.
-        let dir = tempfile::tempdir()
-            .map_err(|e| ThumbnailError::Decode(format!("tempdir: {e}")))?;
+        let dir =
+            tempfile::tempdir().map_err(|e| ThumbnailError::Decode(format!("tempdir: {e}")))?;
         let input_path = dir.path().join("in.bin");
         let output_path = dir.path().join("out.png");
         tokio::fs::write(&input_path, &bytes)
@@ -315,19 +315,17 @@ impl SubprocessWorker {
             }
         };
 
-        let resp: drive_thumb_worker::Response = serde_json::from_slice(&output.stdout)
-            .map_err(|e| {
+        let resp: drive_thumb_worker::Response =
+            serde_json::from_slice(&output.stdout).map_err(|e| {
                 let stderr = String::from_utf8_lossy(&output.stderr);
-                ThumbnailError::Decode(format!(
-                    "parse worker response: {e} (stderr: {stderr})"
-                ))
+                ThumbnailError::Decode(format!("parse worker response: {e} (stderr: {stderr})"))
             })?;
 
         match resp {
             drive_thumb_worker::Response::Ok(_) => {
-                let png = tokio::fs::read(&output_path).await.map_err(|e| {
-                    ThumbnailError::Decode(format!("read worker output: {e}"))
-                })?;
+                let png = tokio::fs::read(&output_path)
+                    .await
+                    .map_err(|e| ThumbnailError::Decode(format!("read worker output: {e}")))?;
                 Ok(png)
             }
             drive_thumb_worker::Response::Err(e) => match e.kind {

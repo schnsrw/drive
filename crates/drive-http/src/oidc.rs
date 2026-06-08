@@ -132,8 +132,10 @@ pub(crate) async fn callback(
         auth.session_ttl.whole_seconds().max(0),
         secure = if auth.cookie_secure { "; Secure" } else { "" },
     );
-    resp.headers_mut()
-        .append(header::SET_COOKIE, HeaderValue::from_str(&csrf_cookie).unwrap());
+    resp.headers_mut().append(
+        header::SET_COOKIE,
+        HeaderValue::from_str(&csrf_cookie).unwrap(),
+    );
     Ok(resp)
 }
 

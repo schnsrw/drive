@@ -215,7 +215,10 @@ impl<'a> FolderRepo<'a> {
 
         and(
             &mut sql,
-            &format!("workspace_id IN ({})", placeholders(filters.workspace_ids.len())),
+            &format!(
+                "workspace_id IN ({})",
+                placeholders(filters.workspace_ids.len())
+            ),
         );
         for w in &filters.workspace_ids {
             binds.push(BindValue::Str(w.clone()));

@@ -73,14 +73,17 @@ pub fn build_http_client() -> Result<oidc_reqwest::Client, OidcError> {
 async fn build_client(
     cfg: &OidcConfig,
     http: &oidc_reqwest::Client,
-) -> Result<CoreClient<
-    openidconnect::EndpointSet,
-    openidconnect::EndpointNotSet,
-    openidconnect::EndpointNotSet,
-    openidconnect::EndpointNotSet,
-    openidconnect::EndpointMaybeSet,
-    openidconnect::EndpointMaybeSet,
->, OidcError> {
+) -> Result<
+    CoreClient<
+        openidconnect::EndpointSet,
+        openidconnect::EndpointNotSet,
+        openidconnect::EndpointNotSet,
+        openidconnect::EndpointNotSet,
+        openidconnect::EndpointMaybeSet,
+        openidconnect::EndpointMaybeSet,
+    >,
+    OidcError,
+> {
     let issuer = IssuerUrl::new(cfg.issuer.as_str().trim_end_matches('/').to_string())
         .map_err(|e| OidcError::Discovery(format!("issuer url: {e}")))?;
     let metadata = CoreProviderMetadata::discover_async(issuer, http)
@@ -168,9 +171,7 @@ pub async fn complete(
     let subject = claims.subject().to_string();
     let email = claims.email().map(|e| e.to_string());
     let email_verified = claims.email_verified().unwrap_or(false);
-    let preferred_username = claims
-        .preferred_username()
-        .map(|u| u.as_str().to_string());
+    let preferred_username = claims.preferred_username().map(|u| u.as_str().to_string());
     let name = claims
         .name()
         .and_then(|n| n.get(None))
@@ -253,7 +254,11 @@ pub async fn upsert_user(
 /// `preferred_username` → email local-part → slugified name + short
 /// subject → `oidc-<short subject>`.
 fn derive_username(claims: &OidcClaims) -> String {
-    if let Some(u) = claims.preferred_username.as_deref().filter(|s| !s.is_empty()) {
+    if let Some(u) = claims
+        .preferred_username
+        .as_deref()
+        .filter(|s| !s.is_empty())
+    {
         return u.to_string();
     }
     if let Some(email) = claims.email.as_deref() {
@@ -286,11 +291,13 @@ fn slug(s: &str) -> String {
 fn short_subject(s: &str) -> String {
     use sha2::{Digest, Sha256};
     let h = Sha256::digest(s.as_bytes());
-    h.iter().take(3).fold(String::with_capacity(6), |mut acc, b| {
-        use std::fmt::Write;
-        let _ = write!(&mut acc, "{b:02x}");
-        acc
-    })
+    h.iter()
+        .take(3)
+        .fold(String::with_capacity(6), |mut acc, b| {
+            use std::fmt::Write;
+            let _ = write!(&mut acc, "{b:02x}");
+            acc
+        })
 }
 
 #[cfg(test)]

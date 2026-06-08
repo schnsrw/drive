@@ -168,10 +168,7 @@ async fn multi_kind_image_only_renders_image_and_refuses_pdf() {
         let img = image::RgbImage::from_pixel(4, 4, image::Rgb([255, 0, 0]));
         let mut buf = Vec::new();
         image::DynamicImage::ImageRgb8(img)
-            .write_to(
-                &mut std::io::Cursor::new(&mut buf),
-                image::ImageFormat::Png,
-            )
+            .write_to(&mut std::io::Cursor::new(&mut buf), image::ImageFormat::Png)
             .unwrap();
         Bytes::from(buf)
     };

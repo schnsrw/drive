@@ -358,9 +358,10 @@ async fn type_filter_pdf_returns_only_pdf_files() {
     for (name, ct) in [
         ("report.pdf", Some("application/pdf")),
         ("snap.png", Some("image/png")),
-        ("draft.docx", Some(
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        )),
+        (
+            "draft.docx",
+            Some("application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+        ),
     ] {
         FileRepo::new(&state.db)
             .insert(&NewFile {

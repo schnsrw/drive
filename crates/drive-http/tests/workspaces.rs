@@ -366,7 +366,10 @@ async fn list_members_returns_username_and_admin_flag() {
         serde_json::from_slice(&r.into_body().collect().await.unwrap().to_bytes()).unwrap();
     let members = body["members"].as_array().unwrap();
     assert_eq!(members.len(), 2);
-    let names: Vec<&str> = members.iter().map(|m| m["username"].as_str().unwrap()).collect();
+    let names: Vec<&str> = members
+        .iter()
+        .map(|m| m["username"].as_str().unwrap())
+        .collect();
     assert!(names.contains(&"admin"));
     assert!(names.contains(&"bob"));
     // is_admin is wired through.

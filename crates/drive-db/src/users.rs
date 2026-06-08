@@ -84,11 +84,7 @@ impl<'a> UserRepo<'a> {
 
     /// Phase 3 §12 — look up by `(provider_id, subject)`. Returns
     /// `NotFound` if no row.
-    pub async fn find_by_oidc(
-        &self,
-        provider_id: &str,
-        subject: &str,
-    ) -> Result<User, DbError> {
+    pub async fn find_by_oidc(&self, provider_id: &str, subject: &str) -> Result<User, DbError> {
         let row = sqlx::query(
             "SELECT id, username, password_hash, is_admin, created_at, quota_bytes, \
                     oidc_provider_id, oidc_subject, oidc_email_verified \

@@ -157,10 +157,17 @@ mod sandbox {
     }
 
     // `RLIMIT_*` constants are typed differently across platforms (Linux:
-    // `__rlimit_resource_t = c_uint`; macOS: bare `c_int`). Take whatever
-    // `libc::RLIMIT_AS` is on this build and pass it straight through.
+    // `__rlimit_resource_t = c_uint`; macOS: bare `c_int`). `libc::setrlimit`
+    // takes the matching type per platform too, so we cfg-gate the wrapper
+    // signature; call sites are identical because `libc::RLIMIT_*` has the
+    // matching type for this build.
+    #[cfg(target_os = "linux")]
+    type ResId = libc::__rlimit_resource_t;
+    #[cfg(not(target_os = "linux"))]
+    type ResId = libc::c_int;
+
     #[allow(unsafe_code)]
-    fn set_rlimit<R: Copy + Into<libc::c_int>>(resource: R, soft: u64) {
+    fn set_rlimit(resource: ResId, soft: u64) {
         let lim = libc::rlimit {
             rlim_cur: soft as libc::rlim_t,
             rlim_max: soft as libc::rlim_t,
@@ -171,7 +178,7 @@ mod sandbox {
         // we ignore the return.
         let lim_ptr: *const libc::rlimit = &raw const lim;
         unsafe {
-            let _ = libc::setrlimit(resource.into(), lim_ptr);
+            let _ = libc::setrlimit(resource, lim_ptr);
         }
     }
 

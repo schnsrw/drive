@@ -144,13 +144,10 @@ pub(crate) async fn search(
             // belong to. If none provided, fall back to active.
             let candidates: Vec<String> = split_csv(q.workspaces_csv.as_deref());
             if candidates.is_empty() {
-                let active = crate::workspaces::resolve_active_workspace(
-                    &s.db,
-                    &session.user_id,
-                    None,
-                )
-                .await
-                .map_err(|_| axum::http::StatusCode::FORBIDDEN)?;
+                let active =
+                    crate::workspaces::resolve_active_workspace(&s.db, &session.user_id, None)
+                        .await
+                        .map_err(|_| axum::http::StatusCode::FORBIDDEN)?;
                 vec![active]
             } else {
                 let members = WorkspaceMemberRepo::new(&s.db);
@@ -564,8 +561,9 @@ mod tests {
         assert_eq!(id, "01HXYZ");
 
         // Tamper with the cursor.
-        let mut bytes =
-            base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(&c).unwrap();
+        let mut bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .decode(&c)
+            .unwrap();
         let mid = bytes.len() / 2;
         bytes[mid] ^= 0x01;
         let bad = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&bytes);
