@@ -1,273 +1,186 @@
-# Casual Drive — v0 Pipeline
+# Casual Drive — Pipeline
 
-**Purpose:** single source of truth for what ships in v0, what status each surface is in, and the order I'm building it.
+**What this is:** the forward-looking work queue. Everything in here is *missing or upcoming* — what has shipped lives in [`CHANGELOG.md`](./CHANGELOG.md) and `git log`. Each item carries the brief that owns it, the trigger that says "start now," and the priority.
 
-**Posture:** v0 must FEEL like a complete Drive (per [[feedback-v0-must-feel-complete]]). Every surface a real Drive has is **visible** in the SPA even when the implementation is stubbed. Polished "Coming in v0.2 — [explanation]" empty states are first-class deliverables, not placeholders.
+**Priority bands**
 
-**Status legend:**
+- **P0** — blocks the next minor release.
+- **P1** — high-value; pick up as soon as P0 is empty.
+- **P2** — nice-to-have; queued.
+- **P3** — vision / "future" work; needs more research before it can move.
 
-| | meaning |
-|---|---|
-| ✅ done | wired end-to-end + works in the live binary |
-| 🟡 wip | in-flight this pass |
-| 🟦 stub | visible in UI, returns canned data or "Coming soon" |
-| ⬜ todo | not started, queued for this v0 |
-| ⏸ v0.2+ | explicitly deferred past v0 |
-
-**Priority bands:**
-
-- **P0** — blocks v0 shipping ("looks broken / missing" without it)
-- **P1** — high visibility; reads as a real Drive
-- **P2** — nice-to-have but not blocking the "feels complete" bar
-
-> **Last audit:** 2026-06-08. Every row was checked against the codebase at that commit before its status was flipped.
+**Trigger** — the concrete condition that flips a row from "queued" to "do this next." Some are user-facing ("first operator outgrows in-process"), some are calendar ("before the first multi-tenant prod deploy"), some are dependency ("after §X lands").
 
 ---
 
-## 1 — Identity / sign-in
+## Theme: Scale & infra
 
-| # | Item | Status | Priority | Notes |
+Single-binary stays the default. These items light up once a deployment grows past one instance or ~50 concurrent users.
+
+| # | Item | Brief | Priority | Trigger |
 |---|---|---|---|---|
-| 1.1 | Sign-in card (username + password) | ✅ done | P0 | v2 palette + Fraunces title + shake on error |
-| 1.2 | Anti-enumeration 401 | ✅ done | P0 | constant-time hash compare |
-| 1.3 | Session cookie (`__Host-cd_sid` Secure HttpOnly SameSite=Lax) | ✅ done | P0 | server-side store in sqlite |
-| 1.4 | Argon2id passwords (OWASP min) | ✅ done | P0 | drive-auth |
-| 1.5 | Sign-out (cookie clear + 401 on session expiry → re-auth flow) | ✅ done | P0 | wired via AuthContext |
-| 1.6 | Caps-lock detection on password | ✅ done | P2 | `Input` listens to `keydown`/`keyup`/`blur` and forwards the `getModifierState("CapsLock")` value; SignIn shows a one-line ⇪ warning under the field when on |
-| 1.7 | "Sign in with [SSO]" stub | ⏸ v0.2+ | — | OIDC is Phase 3 — design + locked decisions in [[12-oidc]] |
-| 1.8 | First-run admin-setup wizard (no env-only) | ✅ done | P1 | `Setup.tsx` flips on `/api/setup/status` → `needs_setup: true`; `/api/setup/admin` creates the first admin + their Personal workspace |
+| S1 | Redis: optional rate-limit / session / presence / cache-invalidation backend behind a trait | [`16-scale-infra`](./docs/research/16-scale-infra.md) | P1 | First operator reports >1 replica OR `/api/admin/system` shows rate-limit buckets > 1000 sustained |
+| S2 | OpenSearch: optional search backend behind a trait (file + note name/body indexing) | [`16-scale-infra`](./docs/research/16-scale-infra.md) | P1 | Search responses miss user intent on a Drive with > ~10k files OR an operator opts in via env |
+| S3 | Indexer worker: incremental, idempotent, debounced bulk-API push | [`16-scale-infra`](./docs/research/16-scale-infra.md) §"Re-indexing" | P1 | Same as S2 |
+| S4 | OpenSearch Phase 2: extracted file contents (text/CSV/markdown direct; PDF/Office via sandboxed extractor) | [`16-scale-infra`](./docs/research/16-scale-infra.md) §"Phase 2" | P2 | After S2 + S3 are stable in the wild |
+| S5 | Health probe + circuit breaker surfaced in Admin → System | [`16-scale-infra`](./docs/research/16-scale-infra.md) §"Health-check" | P1 | Ships alongside S1/S2 |
 
-## 2 — Shell chrome (sidebar, top bar, layout)
+## Theme: Search UX
 
-| # | Item | Status | Priority | Notes |
+Floor is in place (`GET /api/search` over file names, 50-result cap, no filters). The refinement turns it into a tool a team uses every day. **The "Search foundation" rows (SR1–SR8) ship together as one P0 pass** — pagination + filters + sort are interlocking and shipping any one alone leaves the surface feeling half-built. The remaining rows (SR9–SR15) are layered polish that can land in subsequent passes.
+
+### Search foundation (ship together, one P0 pass)
+
+Phase A + Owner chip landed (backend + chip toolbar + Owner autocomplete + infinite scroll + count chip). Remaining polish:
+
+| # | Item | Brief | Priority | Trigger |
 |---|---|---|---|---|
-| 2.1 | Sidebar brand row (Logo + Fraunces wordmark) | ✅ done | P0 | |
-| 2.2 | "New" filled dropdown (folder / upload) | ✅ done | P0 | `Sidebar` exposes `onNewFolder` + `onUpload`; ticks dispatched up to `Shell` |
-| 2.3 | Library nav (My Drive, Notes, Recent, Starred, Shared) | ✅ done | P0 | My Drive + Notes real; Recent/Starred/Shared are polished "Coming soon" panels |
-| 2.4 | Workspaces section | ✅ done | P1 | real `WorkspaceSwitcher` driven by `WorkspaceContext` (§8.4 + §8.8) |
-| 2.5 | System nav (Trash, Settings, Admin) | ✅ done | P0 | all three are real surfaces; Trash is functional for files + notes |
-| 2.6 | Storage card pinned bottom | ✅ done | P1 | shows live `used_bytes`; quota visible when set |
-| 2.7 | Avatar pinned at sidebar bottom | ✅ done | P0 | monogram + username + role |
-| 2.8 | Cmd-K command palette (cmdk) | ✅ done | P1 | `CommandPalette` mounted in `Shell`. ⌘K/Ctrl-K from anywhere outside an input. Grouped results (Go to · Folders · Files · Notes), debounced parallel search over `/api/search` + `/api/notes/search`, workspace-scoped. Selecting a file fires `cd:open-file` (Files listens, opens preview); selecting a note fires `cd:open-note` (Notes listens, opens it) |
-| 2.9 | Top bar notifications bell | ✅ done | P2 | `NotificationsBell` reads recipient-facing recent activity |
-| 2.10 | Help (keyboard-shortcuts modal `?`) | ✅ done | P2 | `HelpModal`; `?` / `Shift-/` opens from anywhere outside an input |
-| 2.11 | Theme toggle + dark palette | ✅ done | P2 | dark token set under `:root[data-theme="dark"]` mirrored under `@media (prefers-color-scheme: dark)` for the `system` mode. ThemeToggle cycles light → dark → system. Logo cloud uses `--paper` so the mark inverts cleanly across themes. Screenshot harness captures both themes (light primary, `*-dark.png` alongside) |
+| SR4 | Result density toggle (Comfortable / Compact; persisted) | [`12-search-surface`](./docs/ux/12-search-surface.md) §"Result density" | P1 | Pick up after feedback on Phase A |
+| SR6 | URL state mirrors query + filters + sort + scope (shareable result links) | [`12-search-surface`](./docs/ux/12-search-surface.md) §"State checklist" | P1 | After SR4 — needs careful coordination with folder-nav routes |
+| SR7 | Per-result actions verified inside search mode (kebab / right-click / multi-select / selection bar — already wired in Files.tsx, audit + bulk action testing in search context) | [`12-search-surface`](./docs/ux/12-search-surface.md) §"Per-result actions" + §"Bulk actions" | P1 | Audit pass after Phase A user feedback |
+| SR-NOTES | Notes results visible in the result grid (today: backend returns them, SPA shows count only) | [`12-search-surface`](./docs/ux/12-search-surface.md) §"Backend contract" | P1 | Pick up after feedback on Phase A |
 
-## 3 — File browser (main pane)
+### Search polish (layered, subsequent passes)
 
-| # | Item | Status | Priority | Notes |
+| # | Item | Brief | Priority | Trigger |
 |---|---|---|---|---|
-| 3.1 | "My Drive" / folder title (Fraunces 30px) | ✅ done | P0 | |
-| 3.2 | Item count next to title ("12 items") | ✅ done | P0 | |
-| 3.3 | Grid view (cards w/ procedural thumbnails, type tints) | ✅ done | P0 | |
-| 3.4 | List view (rows, columns, tabular numerals) | ✅ done | P0 | |
-| 3.5 | Grid/List toggle (segmented control) | ✅ done | P0 | |
-| 3.6 | Empty state (illustrated container + Fraunces title) | ✅ done | P0 | |
-| 3.7 | Search filter (current folder + global) | ✅ done | P0 | `searchAll` hits `/api/search`; respects active workspace via `WorkspaceContext` |
-| 3.8 | Folder navigation (click folder → enter, breadcrumbs, back button, Backspace) | ✅ done | P0 | |
-| 3.9 | Sort dropdown (Name / Modified / Size, folders first) | ✅ done | P1 | `SortMenu` component; persisted to localStorage |
-| 3.10 | Stage swap animation on folder change | ✅ done | P1 | 420ms `cd-stage` keyframes |
-| 3.11 | Drag-drop upload + ghost rows | ✅ done | P0 | |
-| 3.12 | Quick access strip (4 recently-opened) | 🟦 stub | P1 | section reserved; surfaces when §10 Recent indexer lands |
-| 3.13 | Multi-select + selection bar | ✅ done | P1 | `SelectionBar` component; bulk download as zip + bulk trash |
-| 3.14 | Right-click context menu (Share / Rename / Move / Trash / Download) | ✅ done | P1 | `EntryContextMenu` + kebab; same handlers in both surfaces |
-| 3.15 | Skeleton-on-load shimmer | ✅ done | P1 | |
+| SR9  | Focused-empty suggestion grid (Recently opened / Edited by others / Pinned) | [`12-search-surface`](./docs/ux/12-search-surface.md) §"Suggested-when-empty" | P1 | After SR1–SR8 land |
+| SR10 | Type-ahead query autocomplete (separate `/api/search/autocomplete` endpoint, 80 ms debounce) | [`12-search-surface`](./docs/ux/12-search-surface.md) §"Type-ahead" | P1 | After SR1–SR8 land |
+| SR11 | Recent-searches dropdown (per-user `localStorage`, 10 entries, clear-history button) | [`12-search-surface`](./docs/ux/12-search-surface.md) §"Search history" | P1 | Ships with SR10 |
+| SR12 | No-results recovery panel (one-click filter relaxation + did-you-mean from OpenSearch `phrase_suggester`) | [`12-search-surface`](./docs/ux/12-search-surface.md) §"No-results recovery" | P1 | After SR1–SR8 land |
+| SR13 | Full-text snippets + `<mark>` highlights | [`12-search-surface`](./docs/ux/12-search-surface.md) §"Full-text matching" | P1 | Requires S2 (OpenSearch) |
+| SR14 | A11y polish — `role="combobox"`, `aria-live` count announcements, infinite-scroll announcements, focus-trap in popovers | [`12-search-surface`](./docs/ux/12-search-surface.md) §"Accessibility" | P1 | Audited as part of every SR pass; this is the dedicated cleanup row |
+| SR15 | Performance budget — meet the SLOs in [`16-scale-infra`](./docs/research/16-scale-infra.md) §"Search backend wire contract" (p95 < 200 ms keystroke→paint, < 150 ms OpenSearch, < 80 ms type-ahead) | [`12-search-surface`](./docs/ux/12-search-surface.md) §"Performance budget" | P1 | Ships with SR1; instrumented + asserted in CI |
+| SR16 | Saved searches (server-side persistence + sharing) | — (Phase 4; needs brief) | P3 | Real user demand surfaces in feedback |
+| SR17 | Boolean operators in the query (`"exact"`, `-not`, `OR`, `from:`, `before:`) | — (Phase 4; needs brief) | P3 | Power-user feedback after SR10 lands |
 
-## 4 — Preview / open
+## Theme: Real-time / presence
 
-| # | Item | Status | Priority | Notes |
+| # | Item | Brief | Priority | Trigger |
 |---|---|---|---|---|
-| 4.1 | Preview modal (Radix Dialog, detail sidebar) | ✅ done | P0 | |
-| 4.2 | Type-aware primary action | ✅ done | P0 | `.xlsx`/`.docx` → Open in editor; everything else → Download |
-| 4.3 | WOPI handoff for .xlsx → Casual Sheets | ✅ done | P0 | `openInEditor()` mints token, popup-blocker fallback → toast w/ "Open in tab" |
-| 4.4 | WOPI handoff for .docx → Casual Document | ✅ done | P0 | same shape |
-| 4.5 | Inline preview for **images** | ✅ done | P1 | `<img>` against the signed-URL on user-content origin |
-| 4.6 | Inline preview for **PDFs** | ✅ done | P1 | `<iframe>` w/ browser-native viewer on user-content origin |
-| 4.7 | Inline preview for **video** | ✅ done | P1 | `<video>` |
-| 4.8 | Inline preview for **audio** | ✅ done | P2 | `<audio>` |
-| 4.9 | Inline preview for **text / markdown / source** | ✅ done | P2 | text via `<pre>` (512 KB cap); markdown via `marked` + DOMPurify (256 KB cap) |
-| 4.10 | Quick Look (spacebar) on focused row | ⏸ v0.2+ | — | needs keyboard focus model |
+| RT1 | `PresenceHub` (in-process), SSE endpoint, heartbeat, leave | [`14-presence`](./docs/research/14-presence.md) | P1 | Multi-user OIDC sign-in is the floor; presence is the next visible team feature |
+| RT2 | Avatar stack in workspace switcher row | [`14-presence`](./docs/research/14-presence.md) §"SPA surface" | P1 | Ships with RT1 |
+| RT3 | File-row "someone else is viewing" dot | [`14-presence`](./docs/research/14-presence.md) §"SPA surface" | P1 | Ships with RT1 |
+| RT4 | Quiet action toast (rename / trash / move) for files in viewport | [`14-presence`](./docs/research/14-presence.md) §"SPA surface" | P2 | Ships with RT1 |
+| RT5 | Redis-backed presence hub for multi-instance | [`16-scale-infra`](./docs/research/16-scale-infra.md) + [`14-presence`](./docs/research/14-presence.md) | P2 | After RT1 + S1 |
 
-## 5 — Thumbnails
+## Theme: Editor integration (SDK-first)
 
-| # | Item | Status | Priority | Notes |
+Editor handoff in Drive runs through the Casual Sheet + Casual Document **SDKs** (browser-only) by default. A WOPI server-side path is opt-in for real-time co-editing — see [`10-sdk-integration-plan`](./docs/ux/10-sdk-integration-plan.md).
+
+| # | Item | Brief | Priority | Trigger |
 |---|---|---|---|---|
-| 5.1 | Procedural thumbnails | ✅ done | P0 | client-rendered, type-tinted, all kinds |
-| 5.2 | Client-side image-thumbnail creation on upload (canvas → base64) | ✅ done | P1 | `generateThumbnail()`; stored on the file row, served back in list |
-| 5.3 | Client-side video-poster thumbnail on upload | ✅ done | P2 | `generateThumbnail` handles `video/mp4|webm|quicktime|ogg`: hidden `<video>` → seek to 10% → canvas → same encode pipeline. 5s timeouts on metadata/seek so broken codecs don't hang the queue |
-| 5.4 | Server-side thumbnail worker (images in v0; PDFs / videos v0.2) | ✅ done (image slice) | P2 | migration 0010 adds `thumbs_state`. `ImageOnlyWorker` in `drive-storage::thumbnails` decodes via the `image` crate on a blocking thread → 3 PNG sizes (96/256/1024) at `thumbs/{id}/{size}.png`. Lazy generation kicked from `GET /api/files/{id}/thumb/{size}`. PDF + video decoders remain deferred to v0.2 (need a sandboxed subprocess per security brief). FileDto exposes `thumbs_state` + `thumb_urls`; `FileThumb` prefers server assets over the inline data URI when ready |
-| 5.5 | Thumbnail cache (CDN-cacheable URLs) | ⏸ v0.2+ | — | depends on 5.4 |
+| ED1 | SDK-embed handoff for `.xlsx` (sheet/) and `.docx` (document/) — browser-only | [`10-sdk-integration-plan`](./docs/ux/10-sdk-integration-plan.md) | P0 | After the SDK ships in `../sheet` and `../document` |
+| ED2 | Co-edit opt-in: detect editor server URL + bridge to existing WOPI host | [`01-wopi`](./docs/research/01-wopi.md) | P1 | Operator with > 1 team member opts in |
+| ED3 | MS365 / Office Online federation (proof-key RSA hook wakes up) | [`13-ms365-federation`](./docs/research/13-ms365-federation.md) | P3 | Deprioritised — SDK is the primary integration path. Wake when an operator specifically needs MS365 |
 
-## 6 — Upload
+## Theme: Multi-user / RBAC
 
-| # | Item | Status | Priority | Notes |
+The OIDC floor is in. Filling out the team-collaboration story:
+
+| # | Item | Brief | Priority | Trigger |
 |---|---|---|---|---|
-| 6.1 | Multipart streaming upload | ✅ done | P0 | drive-http::files POST /api/files |
-| 6.2 | Magic-byte content-type sniffing (server) | ✅ done | P0 | `sniff_and_check_content_type()` via `infer` crate; rejects executables + sets the authoritative MIME |
-| 6.3 | Per-request body limit (env) | ✅ done | P0 | `DRIVE_BODY_LIMIT_MB` |
-| 6.4 | Per-user storage quota | ✅ done | P1 | `users.quota_bytes`; upload returns 413 + admin allocates via `/api/admin/users/{id}/quota` |
-| 6.5 | Rate limit on upload endpoint | ✅ done | P1 | in-process token bucket per user (`RateLimiter`); returns 429 + `Retry-After` |
-| 6.6 | Concurrent upload cap (client) | ✅ done | P2 | new `mapWithConcurrency` worker pool replaces unbounded `Promise.allSettled`; 4 lanes, matches the server's per-user rate limit so 20-file drops batch instead of bursting |
-| 6.7 | Resumable upload (tus.io) | ⏸ v0.2+ | — | not Phase 1 |
-| 6.8 | Virus-scan hook (ClamAV) | 🟦 stub | P2 | adapter trait + no-op default at minimum |
+| MU1 | Workspace invitations (token-based; email-or-link) | — (needs brief; design notes in `08-byo-storage` only cover storage) | P1 | After RT1 (presence) — invitations are the moment team workspaces stop being "owner-only" |
+| MU2 | Role tiers beyond Owner / Member (Viewer, Editor, Admin) | — (needs brief) | P2 | After MU1 |
+| MU3 | Server-mediated email (transactional: invite / share / quota-request) | — (needs brief) | P2 | After MU1 |
+| MU4 | OIDC group → role mapping (admin group, per-workspace group claims) | [`12-oidc`](./docs/research/12-oidc.md) §"admin_group" extension | P2 | After MU1 + MU2 |
 
-## 7 — Sharing / collaboration
+## Theme: Thumbnails
 
-| # | Item | Status | Priority | Notes |
+| # | Item | Brief | Priority | Trigger |
 |---|---|---|---|---|
-| 7.1 | Share-link table (`share_links`) | ✅ done | P0 | |
-| 7.2 | `POST /api/files/{id}/share` create share-link | ✅ done | P0 | 128-bit token, optional password (Argon2id), expiry, perms |
-| 7.3 | `GET /s/{token}` recipient page | ✅ done | P0 | stripped chrome, `Recipient.tsx` |
-| 7.4 | Share modal in SPA (perms / password / expiry / copy) | ✅ done | P0 | `ShareDialog.tsx`, also lists + revokes existing links |
-| 7.5 | Recipient password-gated flow | ✅ done | P1 | Argon2id-hashed link password; constant-time compare |
-| 7.6 | Revoke link from "shared by me" list | ✅ done | P1 | `DELETE /api/shares/{id}` + ShareDialog list |
+| TH1 | pdfium-render PDF page-1 thumbnails in `drive-thumb-worker` | [`15-sandboxed-thumb-worker`](./docs/research/15-sandboxed-thumb-worker.md) §"PDF" | P2 | First operator with PDF-heavy Drive asks; needs cross-platform packaging story for the native lib |
+| TH2 | Linux seccomp syscall filter in the worker | [`15-sandboxed-thumb-worker`](./docs/research/15-sandboxed-thumb-worker.md) §"seccomp" | P2 | Before the first multi-tenant prod deploy |
+| TH3 | HEIC / RAW image support (likely via `libheif` in the worker) | — (mentioned in `15-sandboxed-thumb-worker` out-of-scope) | P3 | iPhone uploads become common in feedback |
+| TH4 | CDN-cacheable thumbnail URLs (versioned key + far-future cache header) | — (briefly noted in `11-server-thumbnails`) | P2 | After TH1 |
 
-## 8 — Multi-user / teams / RBAC
+## Theme: Uploads
 
-| # | Item | Status | Priority | Notes |
+| # | Item | Brief | Priority | Trigger |
 |---|---|---|---|---|
-| 8.1 | `users` table (multi-row shape) | ✅ done | P0 | |
-| 8.2 | Member list under Settings → Members | 🟦 stub | P1 | "Coming in v0.2 — invite teammates …" until §8.3 lands |
-| 8.3 | Invitation API + email send | ⏸ v0.2+ | — | Phase 3 |
-| 8.4 | Workspace table + workspace switcher | ✅ done | P1 | spec [[13-workspaces-surface]], phase 1 shipped |
-| 8.5 | RBAC (roles + permissions) | 🟡 wip | P1 | Owner+Member today; Admin/Editor/Viewer split is deferred to invitations |
-| 8.6 | Per-workspace storage quota | ⏸ v0.2+ | — | per-user quota done; workspace-level cap belongs with §8.9 BYO storage v2 |
-| 8.7 | Admin user management UI (create / list / quota allocation) | ✅ done | P1 | `Admin → Users` table + inline quota edit + add-user dialog + upgrade-request panel |
-| 8.8 | **Phase 2** — file/folder `workspace_id` column + scoped queries + switcher re-scopes UI | ✅ done | P0 | migration 0006 backfills from owner's Personal; handlers accept `?workspace=` / multipart `workspace_id`; SPA `WorkspaceContext` re-renders Files/search/upload on switcher pick. Full RBAC tiers deferred |
-| 8.9 | Bring-your-own storage per workspace (S3 / MinIO / R2 / B2 + test-connection flow) | ✅ done | P1 | migration 0007, AES-256-GCM secret envelope (`drive-storage::secret_box`), SSRF guard, 5 owner-only endpoints, upload-routing via `StorageRegistry` + per-file `storage_id`. SPA `WorkspaceStorageCard`. 8 integration + 22 unit tests |
-| 8.10 | Quota upgrade request flow | ✅ done | P2 | `POST /api/me/quota/request` emits audit event; admin sees it in Activity + Admin → Users |
-| 8.11 | Notes / Wiki (personal + workspace scope) | ✅ done | P1 | migration 0008, `notes` + `note_links` backlinks index, markdown + live preview, `[[wiki link]]`s, drag-to-reorder tree. 7 unit + 8 integration tests |
+| UP1 | Post-finalize magic-byte sniff on direct uploads (§13.6a residual) | [`10-direct-upload`](./docs/research/10-direct-upload.md) §13.6 | P1 | Before the first multi-tenant prod deploy |
+| UP2 | Resumable uploads (tus.io protocol or S3 multipart with checkpoint) | — (needs brief; `10-direct-upload` lists as out-of-scope) | P2 | First operator hits the wall on a > 1 GB upload |
+| UP3 | EXIF / metadata strip on image uploads | — (needs brief) | P2 | Before the first public share-link feature with image embeds |
+| UP4 | Per-workspace upload quotas (today: per-user only) | — (needs brief) | P2 | After MU1 (workspace-scoped accounting matters once teams exist) |
 
-## 9 — Settings
+## Theme: Sharing
 
-| # | Item | Status | Priority | Notes |
+| # | Item | Brief | Priority | Trigger |
 |---|---|---|---|---|
-| 9.1 | `/settings` route shell with section nav | ✅ done | P0 | `Settings.tsx` |
-| 9.2 | Account (change password) | ✅ done | P1 | `POST /api/auth/change-password` + AccountSection |
-| 9.3 | Workspace | 🟦 stub | P1 | "Coming in v0.2"; rename + transfer live elsewhere |
-| 9.4 | Members | 🟦 stub | P1 | waits on §8.3 invitations |
-| 9.5 | Roles & permissions | 🟦 stub | P1 | waits on §8.5 role tiers |
-| 9.6 | Sharing defaults | 🟦 stub | P1 | hook into §7 once per-user defaults exist |
-| 9.7 | Storage (backend + quota readout + workspace BYO card) | ✅ done | P1 | `StorageSection` + `WorkspaceStorageCard` |
-| 9.8 | Notifications | 🟦 stub | P2 | Coming soon |
-| 9.9 | API tokens | 🟦 stub | P2 | Coming soon |
-| 9.10 | Audit log (link to /activity) | ✅ done | P1 | Settings tile links to /activity |
-| 9.11 | About (version / license / build) | ✅ done | P2 | `AboutSection` reads `/api/about` |
+| SH1 | Folder-level share links (today: per-file) | — (extends `05-sharing-surface`) | P1 | First user reports they need to share a folder |
+| SH2 | Share-link descriptions + indexed in search | [`12-search-surface`](./docs/ux/12-search-surface.md) | P2 | Ships with SR3 |
+| SH3 | Per-share download caps (max-N or expire-after-N-downloads) | — (extends `05-sharing-surface`) | P2 | Operator with sensitive shares asks |
+| SH4 | Authenticated shares (require a Drive account to open) | — (needs brief; depends on MU1) | P2 | After MU1 |
 
-## 10 — Activity / audit
+## Theme: Notes / Wiki
 
-| # | Item | Status | Priority | Notes |
+The current Notes app is shaped for developers (markdown source pane + literal `[[link]]` syntax). For Drive to be the file home of a real team, Notes needs the experience Obsidian Live Preview / macOS Notes / Mem / Bear have converged on: live-render markdown, no source ever visible, slash + `@` + `+` as discovery aids, premium aesthetic restraint.
+
+| # | Item | Brief | Priority | Trigger |
 |---|---|---|---|---|
-| 10.1 | `/activity` route shell | ✅ done | P1 | `Activity.tsx` |
-| 10.2 | `audit_events` SQL table + migration | ✅ done | P1 | migration 0002 |
-| 10.3 | Server-side audit emit on auth / upload / download / trash / share / workspace / storage / notes | ✅ done | P1 | `AuditRepo::emit` fire-and-forget; 20+ action types |
-| 10.4 | Activity feed UI (timeline) | ✅ done | P1 | grouped by day, type-tagged, paginated via `?before=` |
-| 10.5 | Filter by event type / actor / date | ⏸ v0.2+ | — | |
+| NT1 | **Live-render Tiptap editor** — Phase 1 (foundation) shipped: single pane, markdown shortcuts collapse to formatting, source/preview split gone, route-split bundle. Phase 2 wires the `[[Title]]` token to a real link node (currently markdown text). | [`17-notes-general-user-ux`](./docs/research/17-notes-general-user-ux.md) | P1 | Phase 2 follow-up — pick up after NT2–NT4 land |
+| NT2 | Floating formatting toolbar — Phase 1 shipped (Bold / Italic / Strike / Code / H1-H3 / Bullet / Numbered / Quote). Phase 2 adds the link dialog (paste URL inline) + "Turn into → ..." sub-menu. | [`17-notes-general-user-ux`](./docs/research/17-notes-general-user-ux.md) §"Floating formatting" | P2 | Pick up after user feedback on the editor |
+| NT3 | Slash menu (`/`) — Phase 1 shipped (H1-H3 / Bullet / Numbered / Quote / Code block / Divider with keyboard nav). Phase 2 adds the "Embed file from Drive" + "Link to note" items (depends on NT4). | [`17-notes-general-user-ux`](./docs/research/17-notes-general-user-ux.md) §"Slash menu" | P2 | After NT4 |
+| NT4 | `@` people-mention + `+` note-link pickers — Phase 1 shipped (member fetch via `/api/workspaces/{id}/members`, note picker reads tree from parent, "Create page «query»" footer, keyboard-first navigation). Phase 2 adds the `[[` parity trigger (needs a custom multi-char ProseMirror plugin) + a semantic mention node tied to notifications. | [`17-notes-general-user-ux`](./docs/research/17-notes-general-user-ux.md) §"@ for people, [[ or + for notes" | P2 | `[[` parity after user feedback; semantic mention node alongside notifications brief |
+| NT5 | Block handle — Phase 1 shipped (hover-revealed handle + click menu: Duplicate / Move up / Move down / Delete; desktop-only). Phase 2 adds drag-to-reorder (ProseMirror drag plumbing) + the Turn into → sub-menu (Heading / List / Quote / Code). | [`17-notes-general-user-ux`](./docs/research/17-notes-general-user-ux.md) §"Drag handle" | P2 | Pick up after user feedback |
+| NT6 | Mobile sticky bottom toolbar — Phase 1 shipped (Bold / Italic / List / Heading cycle / Link placeholder / `/` opens slash menu; sits above the keyboard with safe-area padding). Phase 2 adds the long-press block sheet (mobile analogue of NT5's drag-handle menu — shares design surface). | [`17-notes-general-user-ux`](./docs/research/17-notes-general-user-ux.md) §"Mobile" | P2 | Long-press sheet after NT5 ships |
+| NT7 | Note attachments (drag-drop image / file → embed) | — (extends `09-notes-wiki`) | P2 | After SR1 — search should index attached file names alongside note bodies |
+| NT8 | Note-to-PDF / note-to-public-web export | — (needs brief) | P2 | Operator asks |
+| NT9 | Real-time collab on notes (Tiptap + Yjs) | — (needs brief; out-of-scope for [`17-notes-general-user-ux`](./docs/research/17-notes-general-user-ux.md)) | P3 | After NT1 + ED2 — Tiptap pivot makes Yjs achievable |
+| NT10 | AI block actions (`/ask AI`, summarise, translate) | — **path-only, not work** | P3 | Integration seam: NT3 slash menu's command list. No brief, no provider pick, no implementation until explicitly prioritised. See [Path-only AI](#path-only-ai-integration-seams) below |
 
-## 11 — Admin / monitoring
+## Theme: Marketing site / docs
 
-| # | Item | Status | Priority | Notes |
+| # | Item | Brief | Priority | Trigger |
 |---|---|---|---|---|
-| 11.1 | `/admin` route shell | ✅ done | P1 | only visible to `is_admin`; non-admin gets a polite block |
-| 11.2 | System health card (version / git_sha / built_at / storage / db / uptime / active sessions / recent sign-ins) | ✅ done | P1 | `SystemCard` |
-| 11.3 | Active sessions list | ✅ done | P2 | session count surfaced in SystemCard; per-session list deferred |
-| 11.4 | Audit-log link from admin | ✅ done | P2 | "Activity feed" link in the admin header |
-| 11.5 | Cache + indexing dashboards (OpenSearch / Redis when enabled) | 🟦 stub | P2 | only relevant once optional infra lands |
-| 11.6 | Storage adapter status | ✅ done | P2 | `StorageCard` in Admin shows configured backend + bucket + endpoint + region |
+| MK1 | Domain flip + final CNAME (`drive.schnsrw.live` → final apex) | [`07-marketing-site`](./docs/research/07-marketing-site.md) | P1 | Calendar / DNS decision; nothing technical blocks it |
+| MK2 | Pagefind docs search | [`07-marketing-site`](./docs/research/07-marketing-site.md) | P2 | After the first user can't find a doc page on their own |
+| MK3 | i18n (start with the marketing site, then docs, then SPA) | — (needs brief) | P3 | First non-English contributor opens an issue |
 
-## 12 — Metadata
+## Theme: Observability
 
-| # | Item | Status | Priority | Notes |
+| # | Item | Brief | Priority | Trigger |
 |---|---|---|---|---|
-| 12.1 | Core metadata (name, size, type, modified, created, version) | ✅ done | P0 | |
-| 12.2 | Sniffed content-type stored (not client-asserted) | ✅ done | P0 | server overrides client header with sniffed kind (§6.2) |
-| 12.3 | EXIF strip (images) | ⏸ v0.2+ | — | privacy/security |
-| 12.4 | Hash / etag | ✅ done | P1 | etag from storage adapter |
-| 12.5 | Tags / labels | 🟦 stub | P2 | UI placeholder; v0.2 backing |
-| 12.6 | Custom fields | ⏸ v0.2+ | — | |
-| 12.7 | Shared-with avatars in details panel | 🟦 stub | P1 | hidden in single-tenant v0 |
+| OB1 | Structured access log (JSON, sampled, redacted) | — (extends `06-security`) | P1 | Before the first multi-tenant prod deploy |
+| OB2 | Prometheus metrics endpoint (`/metrics` on the app origin, mTLS or token-gated) | — (needs brief) | P2 | First operator asks for Grafana integration |
+| OB3 | OpenTelemetry traces for the request lifecycle | — (needs brief) | P3 | After OB2 |
+| OB4 | Audit-event export to S3 (rolling daily JSONL) | — (needs brief) | P2 | Compliance ask from an operator |
 
-## 13 — Presigned URLs (clarification)
+---
 
-| # | Item | Status | Priority | Notes |
-|---|---|---|---|---|
-| 13.1 | Storage facade `signed_get` / `signed_put` | ✅ done | P0 | drive-storage |
-| 13.2 | S3 / MinIO native presign | ✅ done | P0 | via opendal |
-| 13.3 | HMAC self-mint for fs / memory | ✅ done | P0 | `SignedUrl::Token` variant |
-| 13.4 | `/raw/{token}` on user-content origin | ✅ done | P0 | drive-http::raw |
-| 13.5 | `GET /api/files/{id}/download` 302 → signed URL | ✅ done | P0 | drive-http::files |
-| 13.6 | Direct-to-storage upload (presign + complete + abort) | ✅ done | P2 | migration 0009 adds `files.status` + `expected_size`. 3 endpoints under `/api/files/{upload-url,id/complete,id/abort}`. Quota committed at presign (so parallel uploads can't both fit). Adapters that can't presign return 409 → SPA falls back to proxy. SPA opts in at file ≥ 8 MiB via `VITE_DIRECT_UPLOAD=1`. 15-min PUT TTL. §13.6a (post-finalize magic-byte sniff) deferred to v0.2 |
-| 13.7 | Settings UI showing signed-URL TTL | ✅ done | P2 | new `Config::signed_url_ttl_secs` (env `DRIVE_SIGNED_URL_TTL_SECS`, default 300s, floor 30s) threaded through `Storage::signed_get`; `/api/about` returns it + `body_limit_mb`; Settings → Storage → Backend card surfaces both |
+## Path-only AI integration seams
 
-## 14 — Backend chassis (recap — already shipped)
+AI is **deliberately not work** at the current stage of the project — the value Drive delivers is "file home for a real team," and AI is icing on a cake that hasn't fully baked. Briefs and PIPELINE rows may *name* where an AI hook would integrate, in one sentence, so future contributors don't have to re-derive the seams. They must not turn into work without explicit user green-light.
 
-| # | Item | Status |
+The documented seams across surfaces (for orientation only, not as a queue):
+
+| Surface | Where AI would plug in | What it would do |
 |---|---|---|
-| 14.1 | Rust workspace (drive-core / -db / -storage / -wopi / -auth / -http / -bin) | ✅ done |
-| 14.2 | OpenDAL storage with fs / memory / S3 / MinIO adapters | ✅ done |
-| 14.3 | sqlx Any pool with portable SQLite + Postgres migrations | ✅ done |
-| 14.4 | Two-origin Axum (app + user-content, host-dispatch 421) | ✅ done |
-| 14.5 | rust-embed SPA in single static binary | ✅ done |
-| 14.6 | WOPI host (7 endpoints) | ✅ done |
-| 14.7 | tower-sessions + Argon2id auth | ✅ done |
-| 14.8 | File + folder CRUD API | ✅ done |
-| 14.9 | Multi-stage cargo-chef Dockerfile | ✅ done |
-| 14.10 | CI (fmt, clippy, audit, deny, tests, Docker build) | ✅ done |
-| 14.11 | Backend tests passing across the workspace (27 suites at audit time) | ✅ done |
+| Notes editor | Slash-menu command list (NT3) | `/ask AI` → block-level summarise / translate / continue-writing / extract-tasks |
+| Search | `GET /api/search` query rewriter ahead of the OpenSearch call (SR3) | Natural-language → structured filter inference ("PDFs Alex shared last week") |
+| File upload | Post-finalize hook alongside the magic-byte sniff (UP1) | Auto-tag / auto-describe newly uploaded images + PDFs |
+| Sharing | Share-link creation form | Auto-summarise the file's contents into the share description (SH2) |
+| Activity | Audit-event renderer | Natural-language daily digest of "what happened in this workspace" |
 
-## 15 — Marketing site + GH Pages
-
-Spec: [[07-marketing-site]] + [[14-marketing-surface]]. Astro 5, multi-page docs site, looser marketing identity, /demo embeds the SPA bundle.
-
-| # | Item | Status | Priority | Notes |
-|---|---|---|---|---|
-| 15.1 | Astro scaffold + tokens + Base layout + Nav + Footer | ✅ done | P0 | mobile-first, JSON-LD, OG, canonical, sitemap |
-| 15.2 | Landing `/` (Hero, ScreenshotShowcase, FeatureGrid, HowItWorks, Compare, FinalCta) | ✅ done | P0 | single H1, SoftwareApplication schema |
-| 15.3 | `/docs/install` + `/docs/configuration` + `/docs/architecture` + `/docs/contributing` (MDX) | ✅ done | P0 | shared DocLayout w/ sidebar |
-| 15.4 | `/screenshots` gallery | ✅ done | P1 | wired to real PNGs |
-| 15.5 | `/demo` route (iframe → /demo-app/ bundle) | ✅ done | P0 | noindex; SPA built with `VITE_BASE=/demo-app/` |
-| 15.6 | GitHub Actions workflow (build SPA + Astro, deploy Pages) | ✅ done | P0 | fetches Inter fonts in CI |
-| 15.7 | Capture + commit real screenshots | ✅ done | P1 | Playwright harness `web/tests/e2e/marketing-screenshots.mjs` |
-| 15.8 | Pre-built OG image at `/og/default.png` (1200×630) | ✅ done | P1 | `marketing/scripts/build-og.mjs` (sharp + inline SVG) |
-| 15.9 | Lighthouse CI job in workflow (target P/A/B/S ≥ 95) | ✅ done | P2 | `lighthouserc.json` + `@lhci/cli` |
-| 15.10 | Pagefind-powered docs search | ⏸ v0.2+ | — | pages are few enough for Cmd-F today |
-| 15.11 | `/blog` route | ⏸ v0.2+ | — | slot reserved in footer |
-| 15.12 | i18n | ⏸ v0.2+ | — | English-only; structure leaves room for astro-i18n |
-| 15.13 | Domain flip (drive.schnsrw.live → schnsrw.live apex / casualoffice.org) | ⬜ todo | P1 | OLD CNAME at `web/public/CNAME` is now orphaned (deploy artifact is `marketing/dist`). Add `marketing/public/CNAME` when DNS decided; set repo `MARKETING_SITE_URL` variable |
-| 15.13a | Dynamic `robots.txt` keyed to `ASTRO_SITE` | ✅ done | P1 | converted from static `public/robots.txt` to `src/pages/robots.txt.ts` |
-| 15.13b | `/sitemap.xml` convenience alias | ✅ done | P2 | `src/pages/sitemap.xml.ts` mirrors the @astrojs/sitemap index. Humans + legacy crawlers that hit `/sitemap.xml` by convention now resolve; spec-correct `/sitemap-index.xml` continues to ship |
-| 15.13c | `marketing/public/CNAME` for `drive.schnsrw.live` | ✅ done | P0 | the marketing artifact is the Pages deploy target now; CNAME pins the Pages domain in repo + `astro.config.mjs` defaults `ASTRO_SITE` to `https://drive.schnsrw.live` so sitemap URLs match the deploy |
+None of these have a brief, a provider pick, a prompt design, or any code. They are markers for the future. Adding any of them to the active queue requires the user saying "build it."
 
 ---
 
-## Outstanding v0 work (after the 2026-06-08 audit + subsequent shipping passes)
+## What's not in this pipeline
 
-Every P0/P1/P2 row in the tables above is now ✅ done or ⏸ v0.2+. The single residual is a config / decision item, not code:
+If a row is not here, one of three things is true:
 
-| Priority | Surface | Item | Effort |
-|---|---|---|---|
-| **P1** | 15.13 | Domain flip + final CNAME (needs DNS decision — `drive.schnsrw.live` works today; flip to `schnsrw.live` apex / `casualoffice.org` when the call is made) | XS |
-
-Everything else is either a 🟦 stub waiting on its enabling feature (workspace invitations §8.3, RBAC role tiers §8.5, OIDC sign-in §1.7) or explicitly **⏸ v0.2+** with the design parked in a research brief.
+1. It's already shipped — see [`CHANGELOG.md`](./CHANGELOG.md).
+2. It's explicitly out of scope for the foreseeable future (see the "out of scope" sections in each research brief).
+3. It's a real gap we haven't recognised yet — open an issue.
 
 ---
 
-## Phase 3 — what's already specced
+## How to add a row
 
-When v0 has been dogfooded at scale, the next contributor can pick up any of these without re-litigating the design:
+Each row should answer four questions in this order:
 
-| Brief | What it covers |
-|---|---|
-| [[12-oidc]] | Multi-tenant SSO via OIDC. Authorization Code Flow + PKCE, in-process ID-token validation, Drive-side sessions. Maps onto §1.7. |
-| [[13-ms365-federation]] | Office Online client federation. Proof-key RSA validation, served discovery doc, opt-in. Wakes the dormant hook in `drive-wopi`. |
-| [[14-presence]] | Drive-shell ambient awareness (avatar stack + file-row dot + quiet toast). SSE one-channel-per-workspace, in-process hub with a Redis escape hatch. NOT in-editor cursors. |
-| [[15-sandboxed-thumb-worker]] | PDF + video thumbnails in a `drive-thumb-worker` subprocess. seccomp + rlimits + privilege drop. Promotes §5.4 from "image slice done" to full coverage. |
-| §13.6a | Post-finalize magic-byte sniff on direct uploads — the residual hook from the §13.6 spec. Worth doing before a multi-tenant prod deploy. |
-
----
-
-## Build order (next passes)
-
-The v0 queue is empty. Phase 3 starts with whichever brief above the operator picks first — typically **§12 OIDC** because it unlocks every multi-tenant story downstream.
-
-User: if anything's missing, add it. Default execution is top-down.
+1. **What** — one short noun phrase.
+2. **Which brief** — link the doc that owns the design. If the brief doesn't exist yet, mark as "needs brief" and queue writing one first.
+3. **Priority** — P0–P3 per the bands above.
+4. **Trigger** — the concrete signal that says "start now." A trigger like "first operator asks" is fine; a trigger like "before the first multi-tenant prod deploy" is better.

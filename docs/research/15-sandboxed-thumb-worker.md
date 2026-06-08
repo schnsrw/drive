@@ -1,5 +1,8 @@
 # 15 — Sandboxed PDF/video thumbnail subprocess (Phase 3)
 
+> **Status:** Phase A shipped (subprocess + rlimits + ffmpeg video). Phase B (pdfium PDF) and Phase C (Linux seccomp) planned.
+
+
 The image-only path shipped in v0 (§5.4 + `docs/research/11-server-thumbnails.md`). PDFs and videos remained deferred because their decoders are real CVE surface — pdfium, ffmpeg, image-magick, libheif have all had remote-code-execution bugs in the last few years that Drive's in-process workers would inherit verbatim. The security brief calls out the rule: untrusted bytes from untrusted producers (image / PDF / video) must run in a sandboxed worker.
 
 This brief locks the subprocess shape.

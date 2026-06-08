@@ -6,10 +6,14 @@ All notable changes to Casual Drive land here. Format follows
 
 ## [Unreleased]
 
-Phase 3 work — multi-tenant identity (OIDC), MS365 federation, real-time
-presence, sandboxed PDF/video thumbnail subprocess. Design briefs for all
-four landed under `docs/research/12-15`; implementation begins after v0.1
-is dogfooded at scale.
+### Added
+
+- OIDC sign-in (Authorization Code + PKCE). `DRIVE_ALLOW_PASSWORD_AUTH=false` hides the password form.
+- Sandboxed `drive-thumb-worker` subprocess for video thumbnails (ffmpeg-CLI), with per-job rlimits and optional `setuid`. PDF support deferred.
+
+### Planned
+
+See [`PIPELINE.md`](./PIPELINE.md) — MS365 federation, presence, pdfium PDF thumbnails, Linux seccomp filter, post-finalize magic-byte sniff.
 
 ## [0.1.0] — 2026-06-08
 

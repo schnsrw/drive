@@ -7,7 +7,7 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/schnsrw/drive/ci.yml?branch=main&label=CI)](./.github/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.85%2B-orange?logo=rust)](https://www.rust-lang.org/)
-[![Tests](https://img.shields.io/badge/tests-29%20suites%20green-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-195%20green-brightgreen)](#)
 
 [Live demo](https://drive.schnsrw.live/demo) &nbsp;·&nbsp; [Docs](https://drive.schnsrw.live/docs/install) &nbsp;·&nbsp; [Architecture](./docs/ARCHITECTURE.md) &nbsp;·&nbsp; [Pipeline](./PIPELINE.md)
 
@@ -18,7 +18,7 @@
 Casual Drive is a small, sharp file manager built around two ideas:
 
 1. **Your files belong on your server.** Filesystem, S3, MinIO, Cloudflare R2, Backblaze B2 — pick any. Per-workspace bring-your-own-bucket too.
-2. **Office files belong in the browser.** Click a `.xlsx` and it opens in [Casual Sheet](https://github.com/schnsrw/sheet); click a `.docx` and it opens in [Casual Document](https://github.com/schnsrw/document) — handed off via [WOPI](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/online/), the same protocol Microsoft uses.
+2. **Office files belong in the browser.** Click a `.xlsx` and it opens in [Casual Sheet](https://github.com/schnsrw/sheet); click a `.docx` and it opens in [Casual Document](https://github.com/schnsrw/document) — browser-only via the editor SDKs by default, or via [WOPI](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/online/) when an editor server is configured for real-time co-editing.
 
 One Rust binary, one Docker container, a polished React SPA, and a marketing site that doubles as live documentation.
 
@@ -51,16 +51,17 @@ Visit `https://drive.your-server`, complete the one-time admin setup, upload a f
 | **Per-workspace storage** | Bring-your-own S3 / MinIO / R2 / B2 bucket. AES-256-GCM secret envelope, SSRF guard, test-connection flow. |
 | **Quotas + admin** | Per-user storage caps, in-app quota upgrade requests, admin user-management UI, audit feed. |
 | **Direct upload** | Files ≥ 8 MiB on S3-compatible backends PUT straight to the bucket, bypassing the Drive process. |
-| **Server thumbnails** | 96 / 256 / 1024 px PNG thumbnails generated lazily on first access (images in v0; PDF/video need the v0.2 sandboxed worker). |
+| **Server thumbnails** | 96 / 256 / 1024 px PNG thumbnails generated lazily on first access. Images render in-process; video via the sandboxed `drive-thumb-worker` subprocess (ffmpeg-CLI). |
+| **OIDC sign-in** | Authorization Code + PKCE against any compliant IdP. Optional `DRIVE_ALLOW_PASSWORD_AUTH=false` to hide the password form once SSO is wired. |
 | **Settings + Activity + Admin** | Full surfaces, real data, with stubs ("Coming in v0.2 — …") only for features that haven't shipped. |
 
 ## What's locked in v0
 
 Two-origin model, WOPI handoff, OpenDAL storage, tower-sessions, Argon2id passwords, Rust 1.85 + Axum 0.8, React 19 + Vite 7 + Tailwind v4, Astro 5 for the marketing site. Reopening any of these requires new research + a synthesis update — see [`CLAUDE.md`](./CLAUDE.md).
 
-## What's deferred to v0.2+
+## What's deferred
 
-MS365 / Office Online federation (RSA proof-key hook is wired but stubbed), multi-tenant OIDC (sketch lands in [`docs/research/12-oidc.md`](./docs/research/12-oidc.md)), sandboxed PDF/video thumbnail worker, post-finalize magic-byte sniff for direct uploads, resumable uploads, multipart upload protocol, EXIF strip, server-mediated invitations + email, Pagefind docs search, i18n. See [`PIPELINE.md`](./PIPELINE.md) for the full table.
+MS365 / Office Online federation, presence (avatar stack + file-row dots), PDF thumbnails (needs pdfium-render in the worker), post-finalize magic-byte sniff for direct uploads, resumable + multipart uploads, EXIF strip, server-mediated invitations + email, Pagefind docs search, i18n. See [`PIPELINE.md`](./PIPELINE.md) for the table.
 
 ## Repo layout
 
