@@ -92,6 +92,9 @@ const ogUrl = ogImage.startsWith("http") ? ogImage : `${siteUrl}${ogImage}`;
     {/* Sitemap discovery for crawlers that read it */}
     <link rel="sitemap" type="application/xml" href="/sitemap-index.xml" />
 
+    {/* Per-page head extras: LCP preloads, page-specific OG tags, etc. */}
+    <slot name="head" />
+
     {/* JSON-LD */}
     {
       jsonLd && (
