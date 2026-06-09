@@ -713,22 +713,36 @@ export async function demoRequest<T>(path: string, init: RequestInit & { json?: 
     const file = state.files.find((f) => f.id === fid);
     if (!file) throw makeError(404, "file not found");
     if (method === "GET") {
-      // Return an empty ArrayBuffer wrapped in a Response so callers
-      // that do .arrayBuffer() / .blob() work uniformly. Using `as T`
-      // because the shim's return type is generic by route.
-      const empty = new Blob([], {
-        type: file.content_type ?? "application/octet-stream",
-      });
-      return (new Response(empty, {
+      // If the user uploaded this file in this demo session, it has
+      // real bytes in the `blobs` map — return them so the editor
+      // parses the actual .docx / .xlsx. Seeded files (Product
+      // brief.docx etc.) have no entry → fall back to an empty Blob
+      // and the editor renders its "couldn't parse" placeholder
+      // gracefully. Using `as T` because the shim's return type is
+      // generic by route.
+      const stored = blobs.get(fid);
+      const body =
+        stored ??
+        new Blob([], { type: file.content_type ?? "application/octet-stream" });
+      return (new Response(body, {
         status: 200,
         headers: { "Content-Type": file.content_type ?? "application/octet-stream" },
       }) as unknown) as T;
     }
     if (method === "PUT") {
-      // Accept the bytes, update size + bump version so the autosave
-      // chrome shows "saved". Don't persist actual bytes (demo is
-      // ephemeral; this is just to keep the editor's autosave loop
-      // happy).
+      // Accept the bytes + persist into `blobs` so the next GET (same
+      // session) sees them. Size + version bump so the autosave chrome
+      // shows "saved 1s ago". Persistence is session-scoped — the
+      // localStorage shim doesn't carry blobs across reloads.
+      const bodyBlob =
+        init.body instanceof Blob
+          ? init.body
+          : init.body instanceof ArrayBuffer
+            ? new Blob([init.body], {
+                type: file.content_type ?? "application/octet-stream",
+              })
+            : null;
+      if (bodyBlob) blobs.set(fid, bodyBlob);
       const size = init.body instanceof Blob
         ? init.body.size
         : init.body instanceof ArrayBuffer
