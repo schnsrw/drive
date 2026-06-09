@@ -63,10 +63,26 @@ export default defineConfig(({ mode }) => {
       outDir: "dist",
       sourcemap: false,
       assetsDir: "assets",
-      // Tighter chunk policy → smaller initial load. The shell stays
-      // small; vendor chunks split off automatically.
+      // The editor SDK + Univer + ProseMirror combined push the index
+      // chunk past 2 MB. Split them into dedicated vendor chunks so the
+      // shell stays small and lazy-loaded surfaces (the Preview modal's
+      // doc / sheet stages) pull the heavy bundles only when actually
+      // opened.
       rollupOptions: {
-        output: { manualChunks: undefined },
+        output: {
+          manualChunks(id) {
+            if (!id.includes("node_modules")) return undefined;
+            if (id.includes("@univerjs/")) return "vendor-univer";
+            if (id.includes("@schnsrw/casual-sheets")) return "vendor-univer";
+            if (id.includes("@schnsrw/docx-js-editor")) return "vendor-docx-editor";
+            if (id.includes("prosemirror-")) return "vendor-docx-editor";
+            if (id.includes("yjs") || id.includes("y-prosemirror") || id.includes("y-websocket")) {
+              return "vendor-collab";
+            }
+            if (id.includes("react") && !id.includes("react-")) return "vendor-react";
+            return undefined;
+          },
+        },
       },
     },
   };

@@ -14,14 +14,25 @@
  * All bytes come from the file's existing downloadUrl which 302s to the
  * signed URL on the user-content origin.
  */
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import DOMPurify from "dompurify";
 import { marked } from "marked";
 
 import { downloadUrl, type FileDto } from "../../api/client.ts";
-import { CasualDocEditor } from "../editor/CasualDocEditor.tsx";
-import { CasualSheetWorkspace } from "../editor/CasualSheetWorkspace.tsx";
 import { FileThumb, inferKind, type FileKind } from "../FileThumb.tsx";
+
+// CasualDocEditor + CasualSheetWorkspace pull the editor SDK + the Univer
+// peer set (collectively ~2.5 MB minified). Defer them behind React.lazy so
+// the vendor chunk only downloads when a user actually clicks into a
+// .docx / .xlsx preview — Drive's cold-load stays small.
+const CasualDocEditor = lazy(() =>
+  import("../editor/CasualDocEditor.tsx").then((m) => ({ default: m.CasualDocEditor })),
+);
+const CasualSheetWorkspace = lazy(() =>
+  import("../editor/CasualSheetWorkspace.tsx").then((m) => ({
+    default: m.CasualSheetWorkspace,
+  })),
+);
 
 const TEXT_CAP_BYTES = 512 * 1024; // 512 KB
 const MD_CAP_BYTES = 256 * 1024; // 256 KB
@@ -41,9 +52,17 @@ export function PreviewStage({ file, kind }: { file: FileDto; kind: FileKind }) 
     case "md":
       return <MarkdownStage file={file} />;
     case "doc":
-      return <CasualDocEditor file={file} />;
+      return (
+        <Suspense fallback={<EditorLoading />}>
+          <CasualDocEditor file={file} />
+        </Suspense>
+      );
     case "sheet":
-      return <CasualSheetWorkspace file={file} />;
+      return (
+        <Suspense fallback={<EditorLoading />}>
+          <CasualSheetWorkspace file={file} />
+        </Suspense>
+      );
     default:
       return <PlaceholderStage file={file} kind={kind} />;
   }
@@ -384,6 +403,24 @@ function TruncatedBanner({ cap }: { cap: number }) {
       }}
     >
       Showing the first {formatBytes(cap)}. Download the full file for the rest.
+    </div>
+  );
+}
+
+function EditorLoading() {
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "var(--ink-soft)",
+        fontSize: "var(--text-xs)",
+      }}
+    >
+      Loading editor…
     </div>
   );
 }
