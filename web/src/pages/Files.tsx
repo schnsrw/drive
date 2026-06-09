@@ -1513,9 +1513,13 @@ function Card({
             position: "absolute",
             top: 10,
             right: 10,
-            opacity: 0,
-            transform: "translateY(-2px)",
-            transition: "opacity 180ms, transform 180ms",
+            /* Always visible at a subtle 0.55 so the affordance is
+             * discoverable; brightens to 1 on card hover. Previously
+             * opacity:0 by default made users believe the menu didn't
+             * exist (and right-click was the only other path). */
+            opacity: 0.55,
+            transform: "translateY(0)",
+            transition: "opacity 180ms",
           }}
         >
           {kebab}
@@ -1552,6 +1556,11 @@ function Card({
         .cd-file-card:hover .cd-card-kebab {
           opacity: 1;
           transform: translateX(0) translateY(0);
+        }
+        /* Keyboard users — the kebab button itself getting focus also
+         * lights it up so the menu is reachable via Tab. */
+        .cd-card-kebab:focus-within {
+          opacity: 1 !important;
         }
       `}</style>
     </div>
@@ -1772,7 +1781,10 @@ function ListRow({
         style={{
           display: "flex",
           justifyContent: "flex-end",
-          opacity: 0,
+          /* Discoverable by default — was opacity:0 so the menu was
+           * invisible until hover, which on touch + casual desktop
+           * use looked like "no actions exist." */
+          opacity: 0.55,
           transition: "opacity 180ms",
         }}
       >
