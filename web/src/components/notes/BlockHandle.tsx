@@ -1,17 +1,18 @@
 /**
- * NT5 Phase 1 — hover-revealed block handle.
+ * NT5 — hover-revealed block handle.
  * Spec: docs/research/17-notes-general-user-ux.md §"Drag handle".
  *
  * Quiet hover affordance — a 6-dot handle fades in at the left margin
  * of whatever top-level block the cursor is over. Click opens a small
- * menu (Duplicate / Move up / Move down / Delete). Never visible by
- * default; never blocks the eye while reading.
+ * menu (Duplicate / Move up / Move down / Delete). Drag reorders the
+ * block — handed off to ProseMirror's built-in drop machinery, so the
+ * Dropcursor extension (shipped via StarterKit) renders the insertion
+ * indicator and the slice is removed from its source on drop.
  *
  * Desktop-only. Mobile gets the long-press block sheet instead
  * (NT6 Phase 2 — separate PIPELINE row).
  *
- * Phase 2 (separate PIPELINE row):
- *   - Drag-to-reorder via the handle (ProseMirror drag plumbing).
+ * Remaining Phase 2 piece (separate PIPELINE row):
  *   - Turn into → sub-menu (Heading / List / Quote / Code).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -37,6 +38,11 @@ interface ActiveBlock {
 export function BlockHandle({ editor, editorRoot }: Props) {
   const [active, setActive] = useState<ActiveBlock | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  // NT5 Phase 2 — track whether we're mid-drag so the handle dims +
+  // the menu doesn't fire on the same mouse interaction. Pure visual
+  // / interaction state; the heavy lifting (slice, dropcursor, move)
+  // is owned by ProseMirror.
+  const [dragging, setDragging] = useState(false);
   const rafRef = useRef<number | null>(null);
 
   // Hide handle whenever the menu closes by other means (esc, click-out).
@@ -171,6 +177,56 @@ export function BlockHandle({ editor, editorRoot }: Props) {
     [editor, active],
   );
 
+  // NT5 Phase 2 — drag-to-reorder. Hands the block off to
+  // ProseMirror's own drag/drop machinery: we slice the block out of
+  // the doc, hand the slice + `move: true` to `view.dragging`, and
+  // ProseMirror's built-in drop handler (paired with the Dropcursor
+  // extension that StarterKit ships) draws the insertion indicator
+  // and atomically removes-from-source / inserts-at-target on drop.
+  const onDragStart = useCallback(
+    (e: React.DragEvent<HTMLButtonElement>) => {
+      if (!editor || !active) return;
+      const view = editor.view;
+      const doc = view.state.doc;
+      const node = doc.nodeAt(active.pos);
+      if (!node) {
+        e.preventDefault();
+        return;
+      }
+      const end = active.pos + node.nodeSize;
+      const slice = doc.slice(active.pos, end);
+      view.dragging = { slice, move: true };
+
+      // Use the block's own DOM element as the drag ghost so the user
+      // sees what they're moving, not the tiny grip icon.
+      const dom = view.nodeDOM(active.pos) as HTMLElement | null;
+      if (dom && e.dataTransfer) {
+        // Offset places the ghost roughly under the cursor, matching
+        // the original block position rather than snapping to (0,0).
+        const rect = dom.getBoundingClientRect();
+        e.dataTransfer.setDragImage(dom, e.clientX - rect.left, e.clientY - rect.top);
+      }
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = "move";
+        // Firefox refuses to start a drag without payload data.
+        e.dataTransfer.setData("text/plain", node.textContent ?? "");
+      }
+      setDragging(true);
+      setMenuOpen(false);
+    },
+    [editor, active],
+  );
+
+  const onDragEnd = useCallback(() => {
+    setDragging(false);
+    // ProseMirror clears `view.dragging` itself when a drop lands or
+    // the drag is cancelled — but defensively clear here too so an
+    // aborted drag (cursor leaves the window) doesn't leave us in a
+    // half-state.
+    if (editor) editor.view.dragging = null;
+    setActive(null);
+  }, [editor]);
+
   const deleteBlock = useCallback(() => {
     if (!editor || !active) return;
     const doc = editor.view.state.doc;
@@ -197,19 +253,24 @@ export function BlockHandle({ editor, editorRoot }: Props) {
       <Popover.Trigger asChild>
         <button
           type="button"
-          aria-label="Block menu"
+          aria-label="Block menu — click for actions, drag to reorder"
           className="cd-block-handle"
+          draggable
           style={{
             position: "fixed",
             left: handleLeft,
             top: handleTop,
             zIndex: 65,
+            opacity: dragging ? 0.45 : undefined,
+            cursor: dragging ? "grabbing" : "grab",
           }}
           onMouseDown={(e) => {
             // Stop the editor from collapsing the selection when the
             // handle is clicked.
             e.preventDefault();
           }}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
         >
           <GripVertical size={14} strokeWidth={2} />
         </button>
