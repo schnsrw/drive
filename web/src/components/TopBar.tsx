@@ -8,6 +8,10 @@ import { RecentSearchesPopover } from "./RecentSearchesPopover.tsx";
 export type ViewMode = "grid" | "list";
 export type Density = "comfortable" | "compact";
 
+/** SR14 — fixed id so the search input's `aria-controls` and the
+ * recents popover's listbox both reference the same node. */
+const RECENTS_LISTBOX_ID = "cd-search-recents-listbox";
+
 export function TopBar({
   query,
   onQueryChange,
@@ -31,6 +35,10 @@ export function TopBar({
   // emits `cd:recents-changed` after a commit.
   const [inputFocused, setInputFocused] = useState(false);
   const [recents, setRecents] = useState<RecentSearch[]>([]);
+  // SR14 — id of the currently-highlighted option in the recents
+  // popover. Mirrored on the input as `aria-activedescendant` so
+  // screen readers announce the row as the user arrows through.
+  const [activeOptionId, setActiveOptionId] = useState<string | null>(null);
 
   useEffect(() => {
     function refresh() {
@@ -39,6 +47,8 @@ export function TopBar({
     window.addEventListener("cd:recents-changed", refresh);
     return () => window.removeEventListener("cd:recents-changed", refresh);
   }, []);
+
+  const popoverOpen = inputFocused && recents.length > 0;
   return (
     <header
       style={{
@@ -48,10 +58,14 @@ export function TopBar({
         marginBottom: 26,
       }}
     >
-      <div style={{ position: "relative", flex: "1 1 auto", maxWidth: 300, marginLeft: "auto" }}>
+      <div
+        role="search"
+        style={{ position: "relative", flex: "1 1 auto", maxWidth: 300, marginLeft: "auto" }}
+      >
         <Search
           size={16}
           strokeWidth={2}
+          aria-hidden="true"
           style={{
             position: "absolute",
             left: 14,
@@ -64,6 +78,12 @@ export function TopBar({
           type="text"
           placeholder="Search files and folders"
           value={query}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-controls={RECENTS_LISTBOX_ID}
+          aria-expanded={popoverOpen}
+          aria-activedescendant={popoverOpen ? activeOptionId ?? undefined : undefined}
+          aria-label="Search files and folders"
           onChange={(e: ChangeEvent<HTMLInputElement>) => onQueryChange(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && query.trim().length > 0) {
@@ -110,9 +130,11 @@ export function TopBar({
           }}
         />
         <RecentSearchesPopover
-          open={inputFocused && recents.length > 0}
+          open={popoverOpen}
           recents={recents}
           query={query}
+          listboxId={RECENTS_LISTBOX_ID}
+          onActiveOptionChange={setActiveOptionId}
           onPick={(rec) => {
             onQueryChange(rec.query);
             window.dispatchEvent(

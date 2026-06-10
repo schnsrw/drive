@@ -28,6 +28,13 @@ interface Props {
   onPick: (rec: RecentSearch) => void;
   onClear: () => void;
   onClose: () => void;
+  /** SR14 — fixed listbox id so the search input can wire it via
+   * `aria-controls`. */
+  listboxId: string;
+  /** SR14 — caller receives the active option's id so it can echo it
+   * on the input as `aria-activedescendant`. Null when the popover is
+   * closed or has no entries. */
+  onActiveOptionChange?: (id: string | null) => void;
 }
 
 export function RecentSearchesPopover({
@@ -37,6 +44,8 @@ export function RecentSearchesPopover({
   onPick,
   onClear,
   onClose,
+  listboxId,
+  onActiveOptionChange,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [activeIdx, setActiveIdx] = useState(0);
@@ -51,6 +60,18 @@ export function RecentSearchesPopover({
   useEffect(() => {
     setActiveIdx(0);
   }, [filtered.length]);
+
+  // Echo the highlighted option's DOM id to the caller so the input
+  // can mirror it via `aria-activedescendant` — screen readers then
+  // announce the highlighted item as the user arrows through.
+  useEffect(() => {
+    if (!onActiveOptionChange) return;
+    if (!open || filtered.length === 0) {
+      onActiveOptionChange(null);
+      return;
+    }
+    onActiveOptionChange(optionId(listboxId, activeIdx));
+  }, [open, filtered, activeIdx, listboxId, onActiveOptionChange]);
 
   // Keyboard navigation. Listens at window level so the search input
   // can keep focus while arrow keys still drive the popover.
@@ -86,6 +107,7 @@ export function RecentSearchesPopover({
     <div
       ref={containerRef}
       role="listbox"
+      id={listboxId}
       aria-label="Recent searches"
       style={{
         position: "absolute",
@@ -125,6 +147,7 @@ export function RecentSearchesPopover({
           return (
             <li
               key={`${rec.query}-${rec.ts}`}
+              id={optionId(listboxId, i)}
               role="option"
               aria-selected={isActive}
               onMouseEnter={() => setActiveIdx(i)}
@@ -226,6 +249,10 @@ export function RecentSearchesPopover({
       </button>
     </div>
   );
+}
+
+function optionId(listboxId: string, index: number): string {
+  return `${listboxId}-opt-${index}`;
 }
 
 function countActiveFilters(r: RecentSearch): number {
