@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight as ChevronRightSeparator, UploadCloud } from "lucide-react";
+import { ChevronLeft, ChevronRight as ChevronRightSeparator, Link2, MoreHorizontal, UploadCloud } from "lucide-react";
+import { DropdownMenu } from "radix-ui";
 import { toast } from "sonner";
 
 import * as api from "../api/client.ts";
@@ -1016,6 +1017,20 @@ export function Files({
                 new CustomEvent<string>("cd:nav", { detail: "notes" }),
               );
             }}
+            onCopyLink={(id) => {
+              // SR7 remnant — share a deep-link to this specific
+              // note. Shell hydrates `?note=<id>` on mount: routes
+              // to the Notes tab + fires `cd:open-note`.
+              const url = `${window.location.origin}${window.location.pathname}?note=${encodeURIComponent(id)}`;
+              if (typeof navigator !== "undefined" && navigator.clipboard) {
+                void navigator.clipboard
+                  .writeText(url)
+                  .then(() => toast.success("Link copied"))
+                  .catch(() => toast.error("Couldn't copy — copy from address bar"));
+              } else {
+                toast.error("Clipboard isn't available in this browser");
+              }
+            }}
           />
         )}
         {state.kind === "ready" &&
@@ -1204,9 +1219,14 @@ export function Files({
 function NoteResultsSection({
   notes,
   onOpen,
+  onCopyLink,
 }: {
   notes: NoteSearchHit[];
   onOpen: (id: string) => void;
+  /** SR7 remnant — note hits gain a "Copy link" kebab action so users
+   * can share a deep-link to a specific note. Bounded scope; full
+   * rename / move / trash routing through the Notes tab UI. */
+  onCopyLink: (id: string) => void;
 }) {
   return (
     <section aria-label="Note results" style={{ marginBottom: 18 }}>
@@ -1232,59 +1252,171 @@ function NoteResultsSection({
         }}
       >
         {notes.map((n) => (
-          <li key={n.id}>
-            <button
-              type="button"
-              onClick={() => onOpen(n.id)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                width: "100%",
-                padding: "8px 10px",
-                borderRadius: 8,
-                background: "transparent",
-                border: "1px solid var(--line)",
-                color: "var(--ink)",
-                cursor: "pointer",
-                textAlign: "left",
-                fontFamily: "var(--font-sans)",
-                fontSize: "var(--text-sm)",
-                transition: "background 120ms, border-color 120ms",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "var(--bg-hover)";
-                e.currentTarget.style.borderColor = "var(--line-strong)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.borderColor = "var(--line)";
-              }}
-            >
-              <span
-                aria-hidden="true"
-                style={{
-                  width: 22,
-                  height: 22,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: 6,
-                  background: "var(--bg-subtle)",
-                  color: "var(--muted)",
-                  fontSize: 11,
-                  flexShrink: 0,
-                }}
-              >
-                ¶
-              </span>
-              <span style={{ minWidth: 0, flex: 1 }}>{n.title}</span>
-              <span style={{ fontSize: 11, color: "var(--muted-2)" }}>Open in Notes →</span>
-            </button>
-          </li>
+          <NoteResultRow
+            key={n.id}
+            note={n}
+            onOpen={() => onOpen(n.id)}
+            onCopyLink={() => onCopyLink(n.id)}
+          />
         ))}
       </ul>
     </section>
+  );
+}
+
+function NoteResultRow({
+  note,
+  onOpen,
+  onCopyLink,
+}: {
+  note: NoteSearchHit;
+  onOpen: () => void;
+  onCopyLink: () => void;
+}) {
+  return (
+    <li style={{ position: "relative" }}>
+      <button
+        type="button"
+        onClick={onOpen}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          width: "100%",
+          padding: "8px 40px 8px 10px",
+          borderRadius: 8,
+          background: "transparent",
+          border: "1px solid var(--line)",
+          color: "var(--ink)",
+          cursor: "pointer",
+          textAlign: "left",
+          fontFamily: "var(--font-sans)",
+          fontSize: "var(--text-sm)",
+          transition: "background 120ms, border-color 120ms",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "var(--bg-hover)";
+          e.currentTarget.style.borderColor = "var(--line-strong)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "transparent";
+          e.currentTarget.style.borderColor = "var(--line)";
+        }}
+      >
+        <span
+          aria-hidden="true"
+          style={{
+            width: 22,
+            height: 22,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: 6,
+            background: "var(--bg-subtle)",
+            color: "var(--muted)",
+            fontSize: 11,
+            flexShrink: 0,
+          }}
+        >
+          ¶
+        </span>
+        <span style={{ minWidth: 0, flex: 1 }}>{note.title}</span>
+        <span style={{ fontSize: 11, color: "var(--muted-2)" }}>Open in Notes →</span>
+      </button>
+      <NoteResultKebab onCopyLink={onCopyLink} />
+    </li>
+  );
+}
+
+function NoteResultKebab({ onCopyLink }: { onCopyLink: () => void }) {
+  // Matches the discoverability pattern from file / list rows — kebab
+  // sits at 0.55 opacity by default (never invisible) and brightens
+  // on row hover or focus. Same Radix DropdownMenu primitives + token
+  // styles the SortMenu / EntryKebab use, so a future "Rename" /
+  // "Trash" addition slots in without reshaping the surface.
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>
+        <button
+          type="button"
+          aria-label="Note actions"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          style={{
+            position: "absolute",
+            top: "50%",
+            right: 8,
+            transform: "translateY(-50%)",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 26,
+            height: 26,
+            border: "none",
+            background: "transparent",
+            color: "var(--muted)",
+            opacity: 0.55,
+            borderRadius: 6,
+            cursor: "pointer",
+            transition: "opacity 180ms, background 150ms, color 150ms",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.opacity = "1";
+            e.currentTarget.style.background = "var(--bg-hover)";
+            e.currentTarget.style.color = "var(--ink)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.opacity = "0.55";
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.color = "var(--muted)";
+          }}
+        >
+          <MoreHorizontal size={15} strokeWidth={1.8} />
+        </button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          align="end"
+          sideOffset={6}
+          style={{
+            minWidth: 160,
+            background: "var(--card)",
+            border: "1px solid var(--line)",
+            borderRadius: 12,
+            boxShadow: "var(--shadow-lg)",
+            padding: 6,
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--text-sm)",
+            color: "var(--ink)",
+            zIndex: 60,
+            animation: "cd-popover-in 160ms var(--ease)",
+          }}
+        >
+          <DropdownMenu.Item
+            onSelect={(e) => {
+              e.preventDefault();
+              onCopyLink();
+            }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 9,
+              padding: "8px 10px",
+              borderRadius: 8,
+              cursor: "pointer",
+              userSelect: "none",
+              outline: "none",
+              transition: "background 120ms",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-hover)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          >
+            <Link2 size={13} strokeWidth={1.8} aria-hidden="true" />
+            Copy link
+          </DropdownMenu.Item>
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   );
 }
 

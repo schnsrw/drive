@@ -18,6 +18,8 @@ All notable changes to Casual Drive land here. Format follows
 
 ### Fixed
 
+- **Note search-hit deep-links (SR7 remnant).** Note results in search now carry a kebab → "Copy link" that writes `${origin}/?note=<id>` to the clipboard. Shell hydrates that param on mount: routes to the Notes tab and dispatches `cd:open-note` once the lazy Notes chunk has had time to attach its listener. Same dropdown surface the file kebab uses, so rename / trash slot in cleanly when the Notes-tab actions surface lands.
+
 - **Refresh stayed in search mode (SR7).** A rename / trash / share / bulk-trash inside an active search used to swap the result pane back to the current folder listing while the query was still in the input — looked like the search had silently bailed. `refresh()` now bumps a tick the search effect listens for when called in search mode, re-running the search instead of clobbering it.
 
 - **Notes editor — "Link to note" slash item (NT3 Phase 2).** The slash menu (`/`) gets a "Link to note" entry that hands off to the existing `+` note-link picker, so users have keyboard-symmetric paths to insert a wiki-link. The picker still inserts a real Tiptap Link mark with `href="cd-note://<id>"` (NT1 Phase 2) — markdown round-trip + in-app click navigation unchanged.

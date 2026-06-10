@@ -35,7 +35,7 @@ Phase A + Owner chip landed (backend + chip toolbar + Owner autocomplete + infin
 
 | # | Item | Brief | Priority | Trigger |
 |---|---|---|---|---|
-| SR7 | Audit pass shipped — kebab / right-click / shift-+-cmd-click multi-select / SelectionBar / bulkTrash / bulkDownload all share the same code path in browse and search mode (filteredEntries is the source of truth in both); fixed the `refresh()` regression that snapped the user back to the folder listing after a rename / trash inside search. Remaining: per-result actions on Note search hits (currently open-only — rename / move / trash / copy-link still need a kebab on NoteResultsSection rows). | [`12-search-surface`](./docs/ux/12-search-surface.md) §"Per-result actions" + §"Bulk actions" | P2 | Note-result kebab when the Note actions surface lands |
+| SR7 | Audit pass shipped — file / folder kebab, right-click, shift-+-cmd-click multi-select, SelectionBar, bulk-trash, bulk-download all share the same code path in browse and search mode (`filteredEntries` is the source of truth in both); `refresh()` regression fixed; note hits now carry a kebab with **Copy link** (deep-links via `?note=<id>` that Shell hydrates on mount). Remaining: rename / move / trash for note hits — pending a Notes-tab actions surface those operations can re-use, then the SR7 row closes. | [`12-search-surface`](./docs/ux/12-search-surface.md) §"Per-result actions" + §"Bulk actions" | P2 | After the Notes-tab actions surface lands |
 
 ### Search polish (layered, subsequent passes)
 

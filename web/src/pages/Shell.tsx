@@ -47,6 +47,27 @@ export function Shell() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
 
+  // SR7 — `?note=<id>` deep-link from a copied note search-result.
+  // Routes to the Notes tab + fires `cd:open-note` once Notes has had
+  // a chance to mount; matches the path the CommandPalette uses.
+  // Runs ONCE on mount via the empty dep array; subsequent navigation
+  // is event-driven so we don't re-route every render.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const noteId = params.get("note");
+    if (!noteId) return;
+    setNav("notes");
+    // Defer the open event so the lazy <Notes> chunk has its
+    // listener attached before the event fires.
+    const handle = window.setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent<string>("cd:open-note", { detail: noteId }),
+      );
+    }, 200);
+    return () => window.clearTimeout(handle);
+  }, []);
+
   // `?` opens the help modal when the user isn't typing. Listen to the
   // bell's "View all activity →" deep-link too so a click in the dropdown
   // routes to the Activity tab.
