@@ -22,6 +22,10 @@ All notable changes to Casual Drive land here. Format follows
 
 - **Notes editor — "Link to note" slash item (NT3 Phase 2).** The slash menu (`/`) gets a "Link to note" entry that hands off to the existing `+` note-link picker, so users have keyboard-symmetric paths to insert a wiki-link. The picker still inserts a real Tiptap Link mark with `href="cd-note://<id>"` (NT1 Phase 2) — markdown round-trip + in-app click navigation unchanged.
 - **Marketing site — mobile-sized screenshot variants (MK-PERF-95).** `optimize-screenshots.mjs` now also emits an `@800w.avif` + `@800w.webp` for every PNG. The `<picture>` in `ScreenshotShowcase.astro` carries two extra `<source>` entries gated on `media="(max-width: 768px)"` so phones serve the small variant before the desktop one's even considered. On the LCP screenshot (`files-list`) that's 38 KB AVIF → 10 KB AVIF (3.8× smaller). Desktop is unchanged.
+### Performance
+
+- **Search debounce 200 ms → 50 ms (SR15).** The spec budgets p95 keystroke→paint at 200 ms but the existing debounce ate the entire budget before fetch + paint started. Drops to 50 ms (Notion / Linear style). Local p95 fell from 417 ms → 207 ms — essentially on the spec target. AbortController on every keystroke already coalesces in-flight requests, so a tighter debounce produces more cancels, not more wasted server work. Playwright ceiling tightened from 800 ms → 500 ms.
+
 - **Search latency instrumentation (SR15, first pass).** New `lib/searchMetrics.ts` opens a `performance.mark` window on the first keystroke after a paint, closes it in a double-rAF after the search effect's `setState({ ready })` so the timestamp lines up with a composited frame. PerformanceObserver folds each `performance.measure` into a rolling 100-sample buffer; `window.__cd_search_perf()` returns `{ count, p50_ms, p95_ms, max_ms }` for Playwright + manual DevTools probes. CI assertion against the spec's p95 < 200 ms budget follows in a later pass once we've seen a few runs of baseline numbers.
 
 ### Changed

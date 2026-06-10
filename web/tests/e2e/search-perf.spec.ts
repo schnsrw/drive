@@ -10,13 +10,13 @@
  * This spec types a few real queries against the demo backend, reads
  * the rolling buffer, and asserts:
  *   - At least one measurement landed (the wiring is connected).
- *   - p95 is under a permissive 800 ms ceiling.
+ *   - p95 is under a 500 ms ceiling.
  *
- * The spec's actual target is 200 ms. We're keeping the threshold
- * permissive on first pass because CI variance on a shared GitHub
- * runner can spike well above the desktop-Chrome wall-clock — once
- * we have a few green runs to baseline against, the ceiling moves
- * toward 200 ms.
+ * Sized as ~2× the local baseline (Mac p95 ~240 ms) to absorb CI
+ * variance. The spec target is 200 ms; we're not asserting tighter
+ * yet because the demo backend adds ~50 ms over a real OpenSearch
+ * round-trip and CI runners vary widely. If we see a few weeks of
+ * green at <500 ms in CI, halve the ceiling.
  */
 import { expect, test } from "@playwright/test";
 import { resetDemoState, signInDemo } from "./_helpers.ts";
@@ -37,9 +37,10 @@ test("search keystroke→paint latency stays under the permissive ceiling", asyn
     await search.click();
     await search.fill("");
     await search.fill(q);
-    // The search effect's debounce is 200 ms; allow generous slack so
-    // the double-rAF + paint closes the measurement before we read.
-    await page.waitForTimeout(450);
+    // Debounce is 50 ms; allow slack so the double-rAF + paint
+    // closes the measurement before we read. 300 ms covers the
+    // 50 ms debounce + ~200 ms paint budget + headroom.
+    await page.waitForTimeout(300);
     await search.blur();
   }
 
@@ -56,7 +57,8 @@ test("search keystroke→paint latency stays under the permissive ceiling", asyn
   expect(stats, "instrumentation should have captured samples").not.toBeNull();
   if (!stats) return; // narrow for TS
   expect(stats.count, "at least one keystroke→paint pair landed").toBeGreaterThanOrEqual(1);
-  // Permissive ceiling: well above the 200 ms target so flaky CI
-  // variance doesn't fail the build. Tighten once we have data.
-  expect(stats.p95_ms, "p95 within permissive ceiling").toBeLessThan(800);
+  // 500 ms ceiling — 2× local baseline (p95 ~240 ms) to absorb CI
+  // variance. Tighten toward the spec's 200 ms after a few weeks of
+  // green CI numbers.
+  expect(stats.p95_ms, "p95 within ceiling").toBeLessThan(500);
 });

@@ -414,9 +414,12 @@ export function Files({
   }, [state]);
 
   // Phase 3 search effect — drives /api/search with the chip filter
-  // set + sort + pagination. 200 ms debounce on every input change;
+  // set + sort + pagination. 50 ms debounce on every input change to
+  // meet the SR15 spec budget (p95 keystroke→paint < 200 ms); was
+  // 200 ms but that alone ate the entire user-perceived wait.
   // AbortController cancels the in-flight request on each new keystroke
-  // or filter flip so stale responses never overwrite fresh ones.
+  // or filter flip so stale responses never overwrite fresh ones, so
+  // a tighter debounce just means more cancels — not more wasted work.
   useEffect(() => {
     if (!inSearchMode) {
       // Returned to neutral (no query + no filters) → folder listing.
@@ -466,7 +469,7 @@ export function Files({
             : "Couldn't reach the server.";
         setState({ kind: "error", message: msg });
       }
-    }, 200);
+    }, 50);
     return () => {
       clearTimeout(handle);
       controller.abort();
