@@ -1,16 +1,21 @@
 /**
- * NT4 — `+` note-link picker.
+ * NT4 + NT1 Phase 2 — `+` note-link picker.
  * Spec: docs/research/17-notes-general-user-ux.md §"@ for people, [[ or + for notes".
  *
  * Typing `+` after whitespace (or at line start) opens a picker over
- * the active workspace's notes. Selecting one inserts the existing
- * markdown wiki-link token `[[Note title]]` — the backend's link
- * indexer already understands it and resolves the title to an id.
+ * the active workspace's notes. Selecting one inserts a real Tiptap
+ * Link mark pointing at `cd-note://<id>`. MarkdownEditor's
+ * `handleClick` interceptor catches clicks on that href and fires
+ * `cd:open-note`, routing the SPA to the right note in-app.
  *
- * Phase 2 (separate PIPELINE row): add `[[` as a parity trigger.
+ * Storage round-trip: tiptap-markdown serializes the Link mark as
+ * `[Title](cd-note://id)`. On reload it parses back into the same
+ * Link mark. Older notes that stored `[[Title]]` as plain markdown
+ * text still render as text — they upgrade lazily as the user edits.
+ *
+ * Phase 3 (still pending): `[[` as a parity trigger.
  * Tiptap-suggestion's `char` is single-character; multi-char triggers
- * need a custom prosemirror plugin. Until then, users who type
- * `[[Title]]` literally still get a wiki-link via the markdown parser.
+ * need a custom prosemirror plugin.
  */
 import { Extension } from "@tiptap/core";
 import { PluginKey } from "@tiptap/pm/state";
@@ -78,11 +83,21 @@ export function noteLinkExtension(opts: ExtensionOpts): Extension {
         editor.chain().focus().deleteRange(range).run();
         return;
       }
+      // NT1 Phase 2 — insert a real Link mark (href = cd-note://<id>)
+      // followed by a trailing space so the cursor doesn't stay
+      // inside the link mark and pick it up on the next keystroke.
       editor
         .chain()
         .focus()
         .deleteRange(range)
-        .insertContent(`[[${arg.title}]] `)
+        .insertContent([
+          {
+            type: "text",
+            text: arg.title,
+            marks: [{ type: "link", attrs: { href: `cd-note://${arg.id}` } }],
+          },
+          { type: "text", text: " " },
+        ])
         .run();
     },
     render: () => {

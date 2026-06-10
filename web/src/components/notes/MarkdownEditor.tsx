@@ -127,11 +127,13 @@ export function MarkdownEditor({
         // tiptap-markdown's linkify in sync.
         // Protocols whitelist matches LinkDialog.normalizeUrl so the
         // editor refuses to render a `javascript:` mark even if one
-        // slips in via paste.
+        // slips in via paste. `cd-note` is registered for NT1 Phase 2
+        // wiki-links; the click interceptor below routes those to the
+        // in-app note opener instead of letting the browser navigate.
         link: {
           openOnClick: false,
           autolink: true,
-          protocols: ["http", "https", "mailto", "tel"],
+          protocols: ["http", "https", "mailto", "tel", "cd-note"],
           HTMLAttributes: {
             rel: "noopener noreferrer nofollow",
             target: "_blank",
@@ -198,6 +200,26 @@ export function MarkdownEditor({
         // Native `role=textbox` plus our id for label association.
         ...(id ? { id } : {}),
         ...(placeholder ? { "data-placeholder": placeholder } : {}),
+      },
+      // NT1 Phase 2 — wiki-link click interceptor. The `+` picker
+      // (see noteLink.ts) inserts Link marks with `href="cd-note://<id>"`
+      // and the protocol is registered with the Link extension. We
+      // catch the click here, stop the browser from trying to
+      // navigate to a bogus URL, and fire `cd:open-note` so the SPA
+      // routes to that note instead.
+      handleClick(_view, _pos, event) {
+        const target = event.target as HTMLElement | null;
+        if (!target) return false;
+        const anchor = target.closest("a");
+        if (!anchor) return false;
+        const href = anchor.getAttribute("href");
+        if (!href || !href.startsWith("cd-note:")) return false;
+        // `cd-note://abc` → id = "abc"; tolerate the optional `//`.
+        const id = href.replace(/^cd-note:\/\//, "").replace(/^cd-note:/, "");
+        if (!id) return false;
+        event.preventDefault();
+        window.dispatchEvent(new CustomEvent<string>("cd:open-note", { detail: id }));
+        return true;
       },
       // NT2 Phase 2 — ⌘K / Ctrl-K opens the link dialog (matches
       // Notion, Linear, GitHub). Handled here so the shortcut works
