@@ -22,6 +22,7 @@ import {
 import { ComingSoon } from "../components/ComingSoon.tsx";
 import { AccountSection } from "./settings/AccountSection.tsx";
 import { AboutSection } from "./settings/AboutSection.tsx";
+import { MembersSection } from "./settings/MembersSection.tsx";
 import { StorageSection } from "./settings/StorageSection.tsx";
 
 type SectionId =
@@ -224,17 +225,7 @@ function renderSection(def: SectionDef): React.ReactNode {
         />
       );
     case "members":
-      return (
-        <ComingSoon
-          title="Members"
-          description="Invite teammates, set their roles, and revoke access when someone leaves."
-          bullets={[
-            "Email invitations + magic-link onboarding",
-            "Per-member role (Owner / Admin / Editor / Viewer)",
-            "Audit trail of every membership change",
-          ]}
-        />
-      );
+      return <MembersSection />;
     case "roles":
       return (
         <ComingSoon
