@@ -1,9 +1,11 @@
 //! RT1 — real-time presence at the Drive level.
 //!
 //! Spec: `docs/research/14-presence.md`. Phase 1a: in-process
-//! `PresenceHub` + heartbeat / leave HTTP handlers. Phase 1b (this
-//! pass): SSE stream that pushes events to connected clients;
-//! Phase 1c wires audit-event broadcasting in.
+//! `PresenceHub` + heartbeat / leave HTTP handlers. Phase 1b: SSE
+//! stream that pushes events to connected clients. Phase 1c (this
+//! pass): file/folder mutation handlers publish `action` events to
+//! the workspace channel so the SPA's PresenceContext can refresh
+//! affected rows and fire the quiet rename / trash toast (RT4).
 //!
 //! Threat model + decisions live in the brief — important callouts:
 //!
@@ -97,6 +99,17 @@ pub enum PresenceEvent {
     /// A user dropped from the workspace — explicit `/leave` POST
     /// or TTL sweep.
     Left { user_id: String },
+    /// A file / folder / note mutation happened in the workspace.
+    /// The SPA's PresenceContext routes by `action`: file-row dot
+    /// updates, the quiet rename / trash toast, sidebar refresh.
+    /// Mirrors the audit event's shape but only the workspace-scoped
+    /// fields — the durable record lives in the audit log.
+    Action {
+        user_id: String,
+        action: String,
+        target_id: Option<String>,
+        target_name: Option<String>,
+    },
 }
 
 /// One workspace's slice of the hub: who's present, plus the
@@ -229,6 +242,35 @@ impl PresenceHub {
         // still publish Left events to them).
         g.retain(|_, chan| !chan.entries.is_empty() || chan.events.receiver_count() > 0);
         removed
+    }
+
+    /// Publish an `Action` event to the workspace channel. No-op
+    /// when the workspace has no entries / subscribers yet (the bus
+    /// is lazily created on first subscribe / first beat).
+    ///
+    /// Callers should pair this with the existing `AuditRepo::emit`
+    /// — the audit log is the durable record; this is the ambient
+    /// broadcast for live clients. Skipping the broadcast on
+    /// non-presence-visible actions (auth.sign_in, ip-bound events)
+    /// keeps the bus signal-rich.
+    pub async fn broadcast_action(
+        &self,
+        workspace_id: &str,
+        user_id: &str,
+        action: &str,
+        target_id: Option<&str>,
+        target_name: Option<&str>,
+    ) {
+        let g = self.inner.read().await;
+        let Some(chan) = g.get(workspace_id) else {
+            return;
+        };
+        let _ = chan.events.send(PresenceEvent::Action {
+            user_id: user_id.to_owned(),
+            action: action.to_owned(),
+            target_id: target_id.map(str::to_owned),
+            target_name: target_name.map(str::to_owned),
+        });
     }
 
     /// Spawn the background sweep task. Returns the JoinHandle so
@@ -397,6 +439,7 @@ fn serialize(ev: &PresenceEvent) -> Event {
     let name = match ev {
         PresenceEvent::Present { .. } => "present",
         PresenceEvent::Left { .. } => "left",
+        PresenceEvent::Action { .. } => "action",
     };
     // serde_json::to_string can only fail on serialization bugs in
     // our own types — the unwrap is the right shape here.
@@ -512,7 +555,7 @@ mod tests {
             .expect("event arrived");
         match ev {
             PresenceEvent::Present { user_id, .. } => assert_eq!(user_id, "u1"),
-            PresenceEvent::Left { .. } => panic!("expected Present, got Left"),
+            other => panic!("expected Present, got {other:?}"),
         }
     }
 
@@ -529,7 +572,7 @@ mod tests {
             .expect("event arrived");
         match ev {
             PresenceEvent::Left { user_id } => assert_eq!(user_id, "u1"),
-            PresenceEvent::Present { .. } => panic!("expected Left, got Present"),
+            other => panic!("expected Left, got {other:?}"),
         }
     }
 
@@ -553,8 +596,44 @@ mod tests {
             .expect("event arrived");
         match ev {
             PresenceEvent::Left { user_id } => assert_eq!(user_id, "stale"),
-            PresenceEvent::Present { .. } => panic!("expected Left, got Present"),
+            other => panic!("expected Left, got {other:?}"),
         }
+    }
+
+    #[tokio::test]
+    async fn broadcast_action_reaches_subscribers() {
+        let hub = PresenceHub::new();
+        // Force the channel to exist so the broadcast has a sender.
+        hub.beat("ws1", entry("u1", Instant::now())).await;
+        let mut rx = hub.subscribe("ws1").await;
+        hub.broadcast_action("ws1", "u1", "files.rename", Some("F_42"), Some("Q2.xlsx"))
+            .await;
+        let ev = tokio::time::timeout(Duration::from_millis(100), rx.recv())
+            .await
+            .expect("recv did not block")
+            .expect("event arrived");
+        match ev {
+            PresenceEvent::Action {
+                user_id,
+                action,
+                target_id,
+                target_name,
+            } => {
+                assert_eq!(user_id, "u1");
+                assert_eq!(action, "files.rename");
+                assert_eq!(target_id.as_deref(), Some("F_42"));
+                assert_eq!(target_name.as_deref(), Some("Q2.xlsx"));
+            }
+            _ => panic!("expected Action event"),
+        }
+    }
+
+    #[tokio::test]
+    async fn broadcast_action_for_inactive_workspace_is_noop() {
+        let hub = PresenceHub::new();
+        // No beat → no channel → no panic.
+        hub.broadcast_action("never-seen-ws", "u1", "files.upload", None, None)
+            .await;
     }
 
     #[tokio::test]

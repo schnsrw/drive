@@ -647,6 +647,19 @@ async fn create_folder(
             metadata: None,
         },
     );
+    // RT1 1c — workspace-scoped broadcast for live presence clients.
+    // No-op when the workspace channel has no subscribers.
+    if let Some(ws) = f.workspace_id.as_deref() {
+        s.presence
+            .broadcast_action(
+                ws,
+                &session.user_id,
+                "folders.create",
+                Some(&f.id),
+                Some(&f.name),
+            )
+            .await;
+    }
     Ok(Json(f.into()))
 }
 
@@ -818,6 +831,17 @@ async fn upload_file(
             metadata: Some(format!(r#"{{"size":{}}}"#, file.size)),
         },
     );
+    if let Some(ws) = file.workspace_id.as_deref() {
+        s.presence
+            .broadcast_action(
+                ws,
+                &session.user_id,
+                "files.upload",
+                Some(&file.id),
+                Some(&file.name),
+            )
+            .await;
+    }
     Ok(Json(file.into()))
 }
 
@@ -896,6 +920,17 @@ async fn patch_file(
                 metadata: None,
             },
         );
+        if let Some(ws) = updated.workspace_id.as_deref() {
+            s.presence
+                .broadcast_action(
+                    ws,
+                    &session.user_id,
+                    "files.rename",
+                    Some(&updated.id),
+                    Some(&updated.name),
+                )
+                .await;
+        }
     }
     Ok(Json(updated.into()))
 }
@@ -961,6 +996,17 @@ async fn patch_folder(
                 metadata: None,
             },
         );
+        if let Some(ws) = updated.workspace_id.as_deref() {
+            s.presence
+                .broadcast_action(
+                    ws,
+                    &session.user_id,
+                    "folders.rename",
+                    Some(&updated.id),
+                    Some(&updated.name),
+                )
+                .await;
+        }
     }
     Ok(Json(updated.into()))
 }
@@ -980,6 +1026,9 @@ async fn trash_file(
         .trash(&id)
         .await
         .map_err(|e| FilesError::Internal(e.to_string()))?;
+    let trashed_id = file.id.clone();
+    let trashed_name = file.name.clone();
+    let trashed_ws = file.workspace_id.clone();
     AuditRepo::emit(
         &s.db,
         NewAuditEvent {
@@ -993,6 +1042,17 @@ async fn trash_file(
             metadata: None,
         },
     );
+    if let Some(ws) = trashed_ws.as_deref() {
+        s.presence
+            .broadcast_action(
+                ws,
+                &session.user_id,
+                "files.trash",
+                Some(&trashed_id),
+                Some(&trashed_name),
+            )
+            .await;
+    }
     Ok(StatusCode::NO_CONTENT)
 }
 
