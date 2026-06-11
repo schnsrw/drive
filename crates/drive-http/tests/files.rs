@@ -270,6 +270,91 @@ async fn upload_file_then_list_root_shows_it() {
 }
 
 #[tokio::test]
+async fn get_file_meta_returns_the_dto_after_upload() {
+    // `GET /api/files/{id}` — used by Drive's SPA when it lands on
+    // `/file/<id>` cold (refresh / shared URL / bookmark) without an
+    // in-memory FileDto from the file list.
+    let app = router(fixture().await);
+    let cookie = sign_in(&app).await;
+
+    let boundary = "----metaboundary";
+    let body = build_multipart(
+        boundary,
+        &[
+            MultipartField::Text("parent_id", ""),
+            MultipartField::File("file", "meta.txt", "text/plain", b"meta-payload"),
+        ],
+    );
+    let r = app
+        .clone()
+        .oneshot(auth_req(
+            "POST",
+            "/api/files",
+            &cookie,
+            Some(&format!("multipart/form-data; boundary={boundary}")),
+            Body::from(body),
+        ))
+        .await
+        .unwrap();
+    let created = json_body(r).await;
+    let id = created["id"].as_str().unwrap().to_string();
+
+    // Fetch the metadata by id.
+    let r = app
+        .clone()
+        .oneshot(auth_req(
+            "GET",
+            &format!("/api/files/{id}"),
+            &cookie,
+            None,
+            Body::empty(),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(r.status(), StatusCode::OK);
+    let meta = json_body(r).await;
+    assert_eq!(meta["id"], id);
+    assert_eq!(meta["name"], "meta.txt");
+    assert_eq!(meta["size"], 12);
+    assert_eq!(meta["content_type"], "text/plain");
+}
+
+#[tokio::test]
+async fn get_file_meta_404s_for_unknown_id() {
+    let app = router(fixture().await);
+    let cookie = sign_in(&app).await;
+    let r = app
+        .clone()
+        .oneshot(auth_req(
+            "GET",
+            "/api/files/does-not-exist",
+            &cookie,
+            None,
+            Body::empty(),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(r.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn get_file_meta_requires_auth() {
+    let app = router(fixture().await);
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/files/any-id")
+                .header("host", APP)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(r.status(), StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
 async fn upload_rejects_forbidden_extension() {
     let app = router(fixture().await);
     let cookie = sign_in(&app).await;

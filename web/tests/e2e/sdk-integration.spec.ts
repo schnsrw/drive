@@ -73,7 +73,7 @@ test("preview .docx → primary action navigates to /file/<id>", async ({ page }
   await expect(page.getByTestId("file-fullscreen-title")).toHaveText("Product brief.docx");
 });
 
-test("/file/<id> cold load (no history.state) surfaces the explicit error", async ({ page }) => {
+test("/file/<id> cold load fetches metadata via GET /api/files/{id}", async ({ page }) => {
   // Navigate via history.pushState rather than page.goto — addInitScript
   // (used by resetDemoState) re-fires on every fresh document and wipes
   // the auth state. Same-document push keeps us authed.
@@ -81,10 +81,19 @@ test("/file/<id> cold load (no history.state) surfaces the explicit error", asyn
     window.history.pushState(null, "", "/file/f_quarter");
     window.dispatchEvent(new PopStateEvent("popstate"));
   });
+  // FileFullscreen now hits GET /api/files/{id} (backed by demo's
+  // route handler) and resolves to the seeded 'Q2 planning.xlsx'.
+  await expect(page.getByTestId("file-fullscreen-title")).toHaveText("Q2 planning.xlsx", {
+    timeout: 5_000,
+  });
+});
+
+test("/file/<unknown> cold load surfaces the not-found error", async ({ page }) => {
+  await page.evaluate(() => {
+    window.history.pushState(null, "", "/file/does-not-exist");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
   await expect(page.getByTestId("file-fullscreen-error")).toBeVisible({ timeout: 5_000 });
-  await expect(page.getByTestId("file-fullscreen-error")).toContainText(
-    /file list/i,
-  );
 });
 
 test("back arrow returns from /file/<id> to /", async ({ page }) => {

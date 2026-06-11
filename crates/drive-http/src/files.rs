@@ -3,6 +3,7 @@
 //! Endpoints (mounted under `/api`):
 //!
 //! - `GET    /api/folders/root/children`        — list root folder contents
+//! - `GET    /api/files/{id}`                   — file metadata (one FileDto)
 //! - `GET    /api/folders/{id}`                 — folder metadata + children
 //! - `POST   /api/folders`                      — create folder
 //! - `POST   /api/files`                        — multipart streaming upload
@@ -22,7 +23,7 @@ use axum::{
     extract::{DefaultBodyLimit, Multipart, Path, State},
     http::{header, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
-    routing::{get, patch, post},
+    routing::{get, post},
     Json, Router,
 };
 use bytes::Bytes;
@@ -862,6 +863,26 @@ where
     Ok(opt)
 }
 
+/// `GET /api/files/{id}` — return a single file's metadata.
+///
+/// Used by Drive's SPA when it lands on `/file/<id>` cold — i.e.
+/// refresh / shared URL / bookmark — without an in-memory FileDto
+/// from the file list. Owner-gated; emits no audit event (read of
+/// metadata is not a side-effect worth logging).
+async fn get_file_meta(
+    State(s): State<HttpState>,
+    session: AuthSession,
+    Path(id): Path<String>,
+) -> Result<Json<FileDto>, FilesError> {
+    let files = FileRepo::new(&s.db);
+    let file = files
+        .find_by_id(&id)
+        .await
+        .map_err(|_| FilesError::NotFound)?;
+    ensure_owner(&file.owner_id, &session)?;
+    Ok(Json(FileDto::from(file)))
+}
+
 async fn patch_file(
     State(s): State<HttpState>,
     session: AuthSession,
@@ -1259,7 +1280,7 @@ pub(crate) fn router(state: HttpState, body_limit_bytes: usize) -> Router {
             "/api/files",
             post(upload_file).layer(DefaultBodyLimit::max(body_limit_bytes)),
         )
-        .route("/api/files/{id}", patch(patch_file))
+        .route("/api/files/{id}", get(get_file_meta).patch(patch_file))
         .route("/api/files/{id}/trash", post(trash_file))
         .route("/api/files/{id}/restore", post(restore_file))
         .route("/api/files/{id}/download", get(download_file))

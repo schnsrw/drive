@@ -832,6 +832,10 @@ export async function demoRequest<T>(path: string, init: RequestInit & { json?: 
     const sub = fileMatch[3];
     const idx = state.files.findIndex((f) => f.id === fid);
     if (idx === -1) throw makeError(404, "file not found");
+    // GET /api/files/{id} — metadata for the cold `/file/<id>` load.
+    if (method === "GET" && !sub) {
+      return state.files[idx] as unknown as T;
+    }
     if (method === "PATCH" && !sub) {
       const body = init.json as { name?: string; parent_id?: string | null };
       const next: FileDto = {

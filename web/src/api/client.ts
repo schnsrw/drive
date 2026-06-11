@@ -435,6 +435,13 @@ async function uploadDirect(
   });
 }
 
+/** `GET /api/files/{id}` — fetch a single file's metadata. Used by
+ *  the fullscreen `/file/<id>` route when it's loaded cold (refresh /
+ *  shared URL / bookmark) without a FileDto in `history.state`. */
+export async function getFile(id: string): Promise<FileDto> {
+  return request<FileDto>(`/api/files/${encodeURIComponent(id)}`);
+}
+
 export async function renameFile(id: string, name: string): Promise<FileDto> {
   return request<FileDto>(`/api/files/${encodeURIComponent(id)}`, {
     method: "PATCH",

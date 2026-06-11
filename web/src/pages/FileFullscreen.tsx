@@ -31,7 +31,7 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 
-import { type FileDto } from "../api/client.ts";
+import { getFile, type FileDto } from "../api/client.ts";
 import { inferKind } from "../components/FileThumb.tsx";
 
 // Same lazy-load pattern as PreviewStage — both surfaces share the
@@ -58,11 +58,8 @@ export interface FileFullscreenProps {
 }
 
 /** Pull a FileDto out of `history.state` when Files navigated us here.
- *  Drive has no `GET /api/files/{id}` metadata endpoint yet; until that
- *  lands, callers from the file list pass the FileDto through history
- *  state so the editor can mount without an extra round trip. Direct
- *  URL loads (refresh, share-the-link) fall through to the
- *  "open from your file list" error state below. */
+ *  Avoids the cold `GET /api/files/{id}` round trip on the hot path
+ *  (open-from-file-list); we still fetch when state is empty. */
 function fileFromHistory(fileId: string): FileDto | null {
   try {
     const st = window.history.state;
@@ -83,16 +80,28 @@ export function FileFullscreen({ fileId }: FileFullscreenProps) {
     return { kind: "loading" };
   });
 
+  // Cold-load path. When the user lands here via refresh / shared
+  // URL / bookmark, history.state is empty; resolve via the new
+  // `GET /api/files/{id}` endpoint. Hot loads (open-from-Files
+  // through PreviewModal) skip this entirely because the seeded
+  // state above already produced `ready`.
   useEffect(() => {
     if (state.kind !== "loading") return;
-    // No FileDto in history state and no GET-by-id endpoint yet —
-    // surface the cold-load case explicitly. When the backend lane
-    // for metadata-by-id ships, this branch swaps to a fetch.
-    setState({
-      kind: "error",
-      message:
-        "Drive doesn't have a metadata-by-id endpoint yet. Open this file from your file list and the editor will load with full chrome.",
-    });
+    let cancelled = false;
+    (async () => {
+      try {
+        const file = await getFile(fileId);
+        if (cancelled) return;
+        setState({ kind: "ready", file });
+      } catch (err) {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : String(err);
+        setState({ kind: "error", message });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileId]);
 
