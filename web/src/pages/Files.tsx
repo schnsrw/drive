@@ -27,6 +27,7 @@ import { EmptyState } from "../components/EmptyState.tsx";
 import { EntryContextMenu, EntryKebab, type Entry as MenuEntry, type EntryMenuHandlers } from "../components/EntryMenu.tsx";
 import { FileMiniIcon, FileThumb, inferKind, type FileKind } from "../components/FileThumb.tsx";
 import { FileViewingDot } from "../components/FileViewingDot.tsx";
+import { NoResultsRecovery } from "../components/NoResultsRecovery.tsx";
 import { PreviewModal } from "../components/PreviewModal.tsx";
 import { RenameDialog } from "../components/RenameDialog.tsx";
 import { SelectionBar } from "../components/SelectionBar.tsx";
@@ -1041,20 +1042,35 @@ export function Files({
         {state.kind === "loading" && <GridSkeleton view={view} />}
         {state.kind === "ready" && total === 0 && uploading.length === 0 && (
           <div style={{ marginTop: 40 }}>
-            <EmptyState
-              title={
-                query
-                  ? `No files match "${query}"`
-                  : path.length > 1
-                    ? "This folder is empty."
-                    : "Your Drive is empty."
-              }
-              subtitle={
-                query
-                  ? "Try a different search."
-                  : "Drop files here or use the New button to add something."
-              }
-            />
+            {/* SR12 — when the search came back empty AND there's
+                at least one filter to relax, surface the recovery
+                panel; otherwise fall back to the generic
+                empty-state ("Try a different search."). The panel's
+                computeRelaxations() returns [] when nothing's
+                actionable, so we check before rendering. */}
+            {inSearchMode ? (
+              <NoResultsRecovery
+                query={query}
+                filters={searchFilters}
+                onRelax={(next) => setSearchFilters(next)}
+              />
+            ) : null}
+            {!inSearchMode || !hasActiveFilters(searchFilters) ? (
+              <EmptyState
+                title={
+                  query
+                    ? `No files match "${query}"`
+                    : path.length > 1
+                      ? "This folder is empty."
+                      : "Your Drive is empty."
+                }
+                subtitle={
+                  query
+                    ? "Try a different search."
+                    : "Drop files here or use the New button to add something."
+                }
+              />
+            ) : null}
           </div>
         )}
         {/* SR-NOTES: in search mode, surface matching notes above the
