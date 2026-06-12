@@ -79,13 +79,17 @@ export function ThemeToggle() {
       aria-label={labelMap[theme]}
       title={labelMap[theme]}
       style={{
+        // Sits inside the dark sidebar rail next to AvatarRow — uses
+        // the rail-muted/rail-active palette so it reads on the dark
+        // slate background. The toggle itself works the same in both
+        // light + dark themes.
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
         width: 32,
         height: 32,
         borderRadius: 8,
-        color: "var(--muted)",
+        color: "var(--rail-muted)",
         background: "transparent",
         border: "1px solid transparent",
         cursor: "pointer",
@@ -93,13 +97,13 @@ export function ThemeToggle() {
         flexShrink: 0,
       }}
       onMouseOver={(e) => {
-        e.currentTarget.style.background = "var(--bg-hover)";
-        e.currentTarget.style.color = "var(--ink)";
-        e.currentTarget.style.borderColor = "var(--line)";
+        e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+        e.currentTarget.style.color = "var(--rail-active-text)";
+        e.currentTarget.style.borderColor = "var(--rail-line)";
       }}
       onMouseOut={(e) => {
         e.currentTarget.style.background = "transparent";
-        e.currentTarget.style.color = "var(--muted)";
+        e.currentTarget.style.color = "var(--rail-muted)";
         e.currentTarget.style.borderColor = "transparent";
       }}
     >

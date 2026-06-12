@@ -86,6 +86,9 @@ export function Sidebar({
   return (
     <aside
       style={{
+        // Slate Console (re-skin Phase B) — the rail stays dark even
+        // when the rest of the app is in light mode. Tokens shipped
+        // in Phase A's tokens.css.
         width: 248,
         flexShrink: 0,
         height: "100vh",
@@ -93,15 +96,23 @@ export function Sidebar({
         display: "flex",
         flexDirection: "column",
         gap: 6,
-        background: "var(--paper)",
-        borderRight: "1px solid var(--line)",
+        background: "var(--rail)",
+        color: "var(--rail-text)",
+        borderRight: "1px solid var(--rail-line)",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 8px 16px" }}>
-        <div style={{ color: "var(--ink)" }}>
+        {/* Logo's square fills with `currentColor` and the cloud
+            paints with `var(--mark-fg)` so this single wrapper flips
+            both. On the rail we want a cyan square + paper-coloured
+            cloud — readable, brand-locked. */}
+        <div style={{ color: "var(--accent)", ["--mark-fg" as string]: "#FFFFFF" }}>
           <Logo size={36} />
         </div>
-        <Wordmark />
+        {/* Wordmark inherits via currentColor on the wrapping span. */}
+        <div style={{ color: "var(--rail-active-text)" }}>
+          <Wordmark tone="rail" />
+        </div>
       </div>
 
       <RealWorkspaceSwitcher />
@@ -113,28 +124,33 @@ export function Sidebar({
           onClick={() => setMenuOpen((v) => !v)}
           aria-expanded={menuOpen}
           style={{
+            // Slate Console — the New button is the primary cyan
+            // fill (formerly ink-on-paper). Its hover lift uses the
+            // cyan-tinted `--shadow-button` from Phase A tokens.
             display: "flex",
             alignItems: "center",
             gap: 10,
             width: "100%",
             border: "none",
             cursor: "pointer",
-            background: "var(--ink)",
-            color: "var(--paper)",
+            background: "var(--accent)",
+            color: "var(--fg-onAccent)",
             fontFamily: "var(--font-sans)",
             fontSize: "var(--text-md)",
             fontWeight: 500,
             padding: "13px 16px",
-            borderRadius: 14,
-            transition: "transform 250ms var(--ease), box-shadow 250ms",
+            borderRadius: 10,
+            transition: "transform 250ms var(--ease), box-shadow 250ms, background 200ms",
           }}
           onMouseOver={(e) => {
             e.currentTarget.style.transform = "translateY(-1px)";
             e.currentTarget.style.boxShadow = "var(--shadow-button)";
+            e.currentTarget.style.background = "var(--accent-hover)";
           }}
           onMouseOut={(e) => {
             e.currentTarget.style.transform = "";
             e.currentTarget.style.boxShadow = "";
+            e.currentTarget.style.background = "var(--accent)";
           }}
         >
           <Plus size={16} strokeWidth={2} />
@@ -222,7 +238,7 @@ function Section({ label, children }: { label: string; children: React.ReactNode
           fontSize: 10,
           letterSpacing: "2.5px",
           textTransform: "uppercase",
-          color: "var(--muted-2)",
+          color: "var(--rail-muted)",
           fontWeight: 600,
           padding: "10px 12px 4px",
         }}
@@ -263,14 +279,18 @@ function NavRow({
         type="button"
         onClick={onClick}
         style={{
+          // Slate Console rail row. Active = cyan-wash fill +
+          // bright-cyan text (`--rail-active-text`); idle = transparent
+          // + `--rail-text`. Hover gets a thin white wash so the row
+          // affords without flashing colour.
           display: "flex",
           alignItems: "center",
           gap: 12,
           width: "100%",
           padding: "9px 12px",
-          borderRadius: 11,
-          background: active ? "var(--ink)" : "transparent",
-          color: active ? "var(--paper)" : "var(--ink-soft)",
+          borderRadius: 10,
+          background: active ? "var(--rail-active)" : "transparent",
+          color: active ? "var(--rail-active-text)" : "var(--rail-text)",
           border: "none",
           cursor: "pointer",
           fontFamily: "var(--font-sans)",
@@ -280,13 +300,13 @@ function NavRow({
           transition: "background 180ms, color 180ms",
         }}
         onMouseOver={(e) => {
-          if (!active) e.currentTarget.style.background = "var(--bg-hover)";
+          if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.05)";
         }}
         onMouseOut={(e) => {
           if (!active) e.currentTarget.style.background = "transparent";
         }}
       >
-        <Icon size={17} strokeWidth={1.7} style={{ opacity: active ? 1 : 0.7 }} />
+        <Icon size={17} strokeWidth={1.7} style={{ opacity: active ? 1 : 0.85 }} />
         <span style={{ flex: 1 }}>{item.label}</span>
         {item.comingSoon && (
           <span
@@ -294,7 +314,7 @@ function NavRow({
               fontSize: 10,
               letterSpacing: "1px",
               textTransform: "uppercase",
-              color: active ? "rgba(242,240,234,.5)" : "var(--muted-2)",
+              color: active ? "var(--rail-muted)" : "var(--rail-muted)",
               fontWeight: 600,
             }}
           >
@@ -306,7 +326,8 @@ function NavRow({
             className="tabular-nums"
             style={{
               fontSize: "var(--text-sm)",
-              color: active ? "rgba(242,240,234,.6)" : "var(--muted)",
+              color: active ? "var(--rail-active-text)" : "var(--rail-muted)",
+              opacity: active ? 0.7 : 1,
             }}
           >
             {badge}
@@ -407,11 +428,15 @@ function StorageCard({ usedBytes, quotaBytes }: { usedBytes: number; quotaBytes?
   return (
     <div
       style={{
-        background: "var(--card)",
-        border: "1px solid var(--line)",
+        // Raised-on-rail card: `--rail-2` is slightly lighter than
+        // `--rail` so the card lifts off the sidebar background
+        // without breaking the dark frame.
+        background: "var(--rail-2)",
+        border: "1px solid var(--rail-line)",
         borderRadius: "var(--radius)",
         padding: 14,
         marginBottom: 8,
+        color: "var(--rail-text)",
       }}
     >
       <div
@@ -422,33 +447,48 @@ function StorageCard({ usedBytes, quotaBytes }: { usedBytes: number; quotaBytes?
           marginBottom: 10,
         }}
       >
-        <span style={{ fontSize: "var(--text-sm)", fontWeight: 500 }}>Storage</span>
+        <span
+          style={{
+            fontSize: "var(--text-sm)",
+            fontWeight: 500,
+            color: "var(--rail-active-text)",
+          }}
+        >
+          Storage
+        </span>
         {pct !== null && (
           <span
             className="tabular-nums"
             style={{
               fontFamily: "var(--font-display)",
               fontSize: "var(--text-sm)",
-              color: "var(--muted)",
+              color: "var(--rail-muted)",
             }}
           >
             {pct}%
           </span>
         )}
       </div>
-      <div style={{ height: 6, borderRadius: 6, background: "rgba(26,26,30,.08)", overflow: "hidden" }}>
+      <div
+        style={{
+          height: 6,
+          borderRadius: 6,
+          background: "rgba(255, 255, 255, 0.08)",
+          overflow: "hidden",
+        }}
+      >
         <div
           style={{
             display: "block",
             height: "100%",
             width: pct !== null ? `${pct}%` : 0,
             borderRadius: 6,
-            background: "linear-gradient(90deg, var(--ink), #4a4a52)",
+            background: "linear-gradient(90deg, var(--accent), var(--accent-bright))",
             transition: "width 1200ms var(--ease)",
           }}
         />
       </div>
-      <div style={{ fontSize: "var(--text-xs)", color: "var(--muted)", marginTop: 9 }}>
+      <div style={{ fontSize: "var(--text-xs)", color: "var(--rail-muted)", marginTop: 9 }}>
         {pct !== null
           ? `${formatBytes(usedBytes)} of ${formatBytes(quotaBytes!)} used`
           : `${formatBytes(usedBytes)} used`}
@@ -470,30 +510,33 @@ function AvatarRow({ username }: { username: string }) {
         padding: "8px 12px",
         background: "transparent",
         border: "none",
-        borderRadius: 11,
+        borderRadius: 10,
         cursor: "pointer",
         textAlign: "left",
         transition: "background 150ms",
       }}
-      onMouseOver={(e) => (e.currentTarget.style.background = "var(--bg-hover)")}
+      onMouseOver={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
       onMouseOut={(e) => (e.currentTarget.style.background = "transparent")}
     >
       <span
         style={{
+          // Cyan monogram chip on the dark rail — same accent that
+          // fills the New button so the user's avatar reads as "yours
+          // in this product" rather than a generic stock chip.
           width: 32,
           height: 32,
           borderRadius: "50%",
-          background: "linear-gradient(135deg, #2b2b32, #55555f)",
-          color: "var(--paper)",
+          background: "linear-gradient(135deg, var(--accent), var(--accent-bright))",
+          color: "var(--fg-onAccent)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           fontFamily: "var(--font-display)",
-          fontWeight: 500,
+          fontWeight: 600,
           fontSize: "var(--text-sm)",
           flexShrink: 0,
-          border: "2px solid var(--card)",
-          boxShadow: "0 0 0 1px var(--line)",
+          border: "2px solid var(--rail-2)",
+          boxShadow: "0 0 0 1px var(--rail-line)",
         }}
       >
         {monogram}
@@ -504,7 +547,7 @@ function AvatarRow({ username }: { username: string }) {
             display: "block",
             fontSize: "var(--text-sm)",
             fontWeight: 500,
-            color: "var(--ink)",
+            color: "var(--rail-active-text)",
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
@@ -518,14 +561,14 @@ function AvatarRow({ username }: { username: string }) {
             alignItems: "center",
             gap: 4,
             fontSize: "var(--text-xs)",
-            color: "var(--muted)",
+            color: "var(--rail-muted)",
           }}
         >
           <ShieldCheck size={11} strokeWidth={1.8} />
           Admin
         </span>
       </span>
-      <Users size={14} style={{ color: "var(--muted-2)" }} />
+      <Users size={14} style={{ color: "var(--rail-muted)" }} />
     </button>
   );
 }

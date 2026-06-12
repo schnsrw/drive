@@ -38,18 +38,23 @@ export function Logo({ size = 38, className }: { size?: number; className?: stri
   );
 }
 
-/** The wordmark — Fraunces "Casual" over uppercase letter-spaced "DRIVE". */
-export function Wordmark() {
+/** The wordmark — "Casual" over uppercase letter-spaced "DRIVE".
+ * `tone="rail"` flips colours to read on the dark sidebar (rail-text
+ * for the muted "DRIVE", inherits `currentColor` for "Casual" from
+ * the ancestor — so the parent can set the active-text colour and
+ * the wordmark follows). Default tone is the legacy ink-on-paper. */
+export function Wordmark({ tone = "default" }: { tone?: "default" | "rail" }) {
+  const isRail = tone === "rail";
   return (
     <span style={{ display: "inline-block", lineHeight: 1 }}>
       <span
         style={{
           fontFamily: "var(--font-display)",
-          fontWeight: 500,
+          fontWeight: 600,
           fontSize: 18,
-          letterSpacing: "0.5px",
+          letterSpacing: "-0.015em",
           display: "block",
-          color: "var(--ink)",
+          color: isRail ? "inherit" : "var(--ink)",
         }}
       >
         Casual
@@ -60,7 +65,7 @@ export function Wordmark() {
           fontSize: 10,
           letterSpacing: "4px",
           textTransform: "uppercase",
-          color: "var(--muted)",
+          color: isRail ? "var(--rail-muted)" : "var(--muted)",
           fontWeight: 500,
           marginTop: 3,
           display: "block",

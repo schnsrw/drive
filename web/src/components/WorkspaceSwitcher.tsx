@@ -109,7 +109,7 @@ export function WorkspaceSwitcher({ onChange }: { onChange?: (w: Workspace) => v
           >
             {current?.name ?? "Personal"}
           </span>
-          <ChevronDown size={14} style={{ color: "var(--muted)", flexShrink: 0 }} />
+          <ChevronDown size={14} style={{ color: "var(--rail-muted)", flexShrink: 0 }} />
         </button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
@@ -279,20 +279,24 @@ function Sep() {
 }
 
 function triggerStyle(): React.CSSProperties {
+  // The switcher sits inside the dark sidebar rail, so it has its
+  // own "raised" surface (`--rail-2`) instead of the bright `--card`.
+  // The popover (menuStyle below) still uses `--card` because it
+  // floats above the workspace, not inside the rail.
   return {
     display: "flex",
     alignItems: "center",
     gap: 10,
     width: "100%",
     padding: "10px 12px",
-    background: "var(--card)",
-    border: "1px solid var(--line)",
-    borderRadius: 11,
+    background: "var(--rail-2)",
+    border: "1px solid var(--rail-line)",
+    borderRadius: 10,
     cursor: "pointer",
     fontFamily: "var(--font-sans)",
     fontSize: "var(--text-sm)",
     fontWeight: 500,
-    color: "var(--ink)",
+    color: "var(--rail-active-text)",
     textAlign: "left",
     transition: "background 150ms, border-color 150ms",
   };
@@ -304,8 +308,11 @@ function iconBox(small = false): React.CSSProperties {
     width: sz,
     height: sz,
     borderRadius: small ? 5 : 6,
-    background: "var(--ink)",
-    color: "var(--paper)",
+    // Cyan-tinted square on the rail; switches back to `--ink` when
+    // the same `<iconBox>` renders inside the dropdown popover (which
+    // is on the bright `--card`).
+    background: "var(--accent)",
+    color: "var(--fg-onAccent)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
