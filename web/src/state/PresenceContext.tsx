@@ -101,9 +101,13 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
   const viewingRef = useRef<string | null>(null);
 
   // Stable `setViewing` so callers can pass it through useEffect deps
-  // without causing churn.
+  // without causing churn. Skipped entirely in DEMO_MODE — the demo
+  // backend has no presence endpoints and Vite's proxy would spam
+  // 500s into the console (which the `_iframe-verify` e2e treats as
+  // test failures).
   const beatNow = useCallback(
     (ws: string, viewing: string | null) => {
+      if (DEMO_MODE) return;
       // Fire-and-forget. The server doesn't 4xx anything but a
       // membership 403 — and we'd only see that on a workspace
       // mid-revoke, which the sidebar refresh handles separately.

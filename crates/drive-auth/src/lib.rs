@@ -23,6 +23,7 @@ mod token;
 
 pub use error::AuthError;
 pub use extractor::{AuthSession, OptionalAuthSession};
+pub use handlers::build_session_cookie;
 pub use oidc::{OidcClaims, OidcError};
 pub use password::{hash_password, verify_password, OWASP_PARAMS};
 pub use router::router;

@@ -25,15 +25,20 @@
 
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{header, HeaderValue, StatusCode},
+    response::{IntoResponse, Response},
     routing::{delete, get, post},
     Json, Router,
 };
 use base64::Engine;
-use drive_auth::AuthSession;
+use drive_auth::{
+    build_session_cookie, generate_csrf_token, generate_session_id, hash_password, AuthSession,
+    OptionalAuthSession,
+};
 use drive_db::{
-    AuditRepo, NewAuditEvent, NewWorkspaceInvitation, UserRepo, WorkspaceInvitation,
-    WorkspaceInvitationRepo, WorkspaceMemberRepo, WorkspaceRepo, WorkspaceRole,
+    AuditRepo, NewAuditEvent, NewSession, NewUser, NewWorkspaceInvitation, SessionRepo, UserRepo,
+    WorkspaceInvitation, WorkspaceInvitationRepo, WorkspaceMemberRepo, WorkspaceRepo,
+    WorkspaceRole,
 };
 use serde::{Deserialize, Serialize};
 
@@ -390,16 +395,19 @@ async fn peek_invitation(
     }))
 }
 
-/// `POST /api/invitations/{token}/accept` — accept an invitation as
-/// the signed-in caller. Phase 1a is signed-in-only; anonymous
-/// callers get 401 and the SPA's accept page bounces them to sign-in
-/// with a return URL. Magic-link auto-create (anonymous → new user)
-/// ships in MU1 Phase 1d.
+/// `POST /api/invitations/{token}/accept` — accept an invitation.
+/// Signed-in callers join their existing account. Anonymous callers
+/// hit the magic-link auto-create path: the server mints a fresh
+/// `user-<short-ulid>` user with a random password hash they don't
+/// know, starts a session for them, and adds them to the workspace
+/// — all in one round trip. The response carries `created_user` so
+/// the SPA can announce the auto-generated username via toast (the
+/// user renames themselves in Settings → Profile later).
 async fn accept_invitation(
     State(s): State<HttpState>,
-    session: AuthSession,
+    OptionalAuthSession(maybe_session): OptionalAuthSession,
     Path(token): Path<String>,
-) -> Result<(StatusCode, Json<AcceptResp>), (StatusCode, Json<ErrBody<'static>>)> {
+) -> Result<Response, (StatusCode, Json<ErrBody<'static>>)> {
     let repo = WorkspaceInvitationRepo::new(&s.db);
     let inv = repo.find_by_token(&token).await.map_err(|_| {
         (
@@ -410,19 +418,54 @@ async fn accept_invitation(
         )
     })?;
 
+    // ── Branch: signed-in vs anonymous ────────────────────────────
+    let (effective_user_id, effective_username, created_user_payload, set_cookie) =
+        match maybe_session {
+            Some(session) => {
+                // Existing user. No session minting; no Set-Cookie.
+                (session.user_id, session.username, None, None)
+            }
+            None => {
+                // Magic-link auto-create. Refuse if the token's
+                // already unusable so we don't strand a freshly-
+                // created user account on a dead invite.
+                if !inv.is_consumable() {
+                    return Err((
+                        StatusCode::CONFLICT,
+                        Json(ErrBody {
+                            error: "invitation expired or exhausted",
+                        }),
+                    ));
+                }
+                let (uid, username, cookie) = mint_anonymous_user(&s).await?;
+                let payload = Some(CreatedUser {
+                    user_id: uid.clone(),
+                    username: username.clone(),
+                });
+                (uid, username, payload, Some(cookie))
+            }
+        };
+
     // Already a member? Idempotent — return 200 BEFORE the
     // consumable check, so a user clicking their own already-used
     // invite link from email history gets the friendly path rather
-    // than a 409 about exhaustion that's true but unhelpful.
+    // than a 409 about exhaustion that's true but unhelpful. (This
+    // branch is only meaningful for signed-in callers; an
+    // anonymous caller's brand-new account can't already be a
+    // member.)
     let members = WorkspaceMemberRepo::new(&s.db);
-    if let Ok(Some(_)) = members.role_of(&inv.workspace_id, &session.user_id).await {
-        return Ok((
-            StatusCode::OK,
-            Json(AcceptResp {
-                workspace_id: inv.workspace_id,
-                already_member: true,
-            }),
-        ));
+    if set_cookie.is_none() {
+        if let Ok(Some(_)) = members.role_of(&inv.workspace_id, &effective_user_id).await {
+            return Ok(json_response(
+                StatusCode::OK,
+                &AcceptResp {
+                    workspace_id: inv.workspace_id,
+                    already_member: true,
+                    created_user: None,
+                },
+                None,
+            ));
+        }
     }
 
     // Not yet a member — token must still have capacity.
@@ -459,7 +502,7 @@ async fn accept_invitation(
         _ => WorkspaceRole::Member,
     };
     members
-        .insert(&inv.workspace_id, &session.user_id, role)
+        .insert(&inv.workspace_id, &effective_user_id, role)
         .await
         .map_err(|_| {
             (
@@ -473,8 +516,8 @@ async fn accept_invitation(
     AuditRepo::emit(
         &s.db,
         NewAuditEvent {
-            actor_id: Some(session.user_id.clone()),
-            actor_username: Some(session.username.clone()),
+            actor_id: Some(effective_user_id.clone()),
+            actor_username: Some(effective_username.clone()),
             action: "workspace.joined".into(),
             target_kind: Some("workspace".into()),
             target_id: Some(inv.workspace_id.clone()),
@@ -485,24 +528,25 @@ async fn accept_invitation(
     );
 
     // RT1 1c — quiet broadcast so existing members' RT4 toast can
-    // announce the new arrival. Uses the "+ joined" wording on the
-    // SPA side.
+    // announce the new arrival.
     s.presence
         .broadcast_action(
             &inv.workspace_id,
-            &session.user_id,
+            &effective_user_id,
             "workspace.joined",
             Some(&inv.workspace_id),
-            Some(&session.username),
+            Some(&effective_username),
         )
         .await;
 
-    Ok((
+    Ok(json_response(
         StatusCode::OK,
-        Json(AcceptResp {
+        &AcceptResp {
             workspace_id: inv.workspace_id,
             already_member: false,
-        }),
+            created_user: created_user_payload,
+        },
+        set_cookie,
     ))
 }
 
@@ -510,6 +554,144 @@ async fn accept_invitation(
 struct AcceptResp {
     workspace_id: String,
     already_member: bool,
+    /// Only present when the accept minted a brand-new user (magic-
+    /// link auto-create). The SPA uses this for the welcome toast +
+    /// to prompt the user to rename themselves in Settings.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    created_user: Option<CreatedUser>,
+}
+
+#[derive(Debug, Serialize)]
+struct CreatedUser {
+    user_id: String,
+    username: String,
+}
+
+/// Build a `Json<AcceptResp>` Response with an optional `Set-Cookie`
+/// (for the magic-link path).
+fn json_response<T: Serialize>(
+    status: StatusCode,
+    body: &T,
+    set_cookie: Option<String>,
+) -> Response {
+    let mut resp = (status, Json(body)).into_response();
+    if let Some(cookie) = set_cookie {
+        if let Ok(value) = HeaderValue::from_str(&cookie) {
+            resp.headers_mut().insert(header::SET_COOKIE, value);
+        }
+    }
+    resp
+}
+
+/// Mint a fresh user + session for an anonymous magic-link accept.
+/// Returns (user_id, username, set_cookie_header_value).
+///
+/// - Username: `user-<6 chars of ULID>` — collision probability is
+///   tiny but we still retry once on UniqueViolation to stay safe.
+/// - Password: a random 32-byte Argon2id hash the user can never
+///   guess. They sign in via OIDC or reset via Settings → Profile
+///   (forthcoming) once they pick a real password.
+async fn mint_anonymous_user(
+    s: &HttpState,
+) -> Result<(String, String, String), (StatusCode, Json<ErrBody<'static>>)> {
+    let users = UserRepo::new(&s.db);
+    let sessions = SessionRepo::new(&s.db);
+
+    // Random throw-away password just to make hash_password happy.
+    // The bytes never appear in any response.
+    let throwaway = {
+        use argon2::password_hash::rand_core::{OsRng, RngCore};
+        let mut buf = [0u8; 32];
+        OsRng.fill_bytes(&mut buf);
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(buf)
+    };
+    let password_hash = hash_password(&throwaway).map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrBody {
+                error: "user hash failed",
+            }),
+        )
+    })?;
+
+    // Try up to 3 times before giving up — ULID collisions are
+    // essentially impossible but UNIQUE-violation retry costs us
+    // nothing.
+    let mut last_err: Option<drive_db::DbError> = None;
+    for _ in 0..3 {
+        let username = format!(
+            "user-{}",
+            ulid::Ulid::new()
+                .to_string()
+                .chars()
+                .skip(20)
+                .collect::<String>()
+                .to_lowercase()
+        );
+        match users
+            .insert(&NewUser {
+                username: username.clone(),
+                password_hash: password_hash.clone(),
+                is_admin: false,
+            })
+            .await
+        {
+            Ok(u) => {
+                let sid = generate_session_id();
+                let csrf = generate_csrf_token();
+                sessions
+                    .insert(
+                        &sid,
+                        &NewSession {
+                            user_id: u.id.clone(),
+                            csrf_token: csrf,
+                            ttl: time::Duration::hours(24),
+                        },
+                    )
+                    .await
+                    .map_err(|_| {
+                        (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Json(ErrBody {
+                                error: "session insert failed",
+                            }),
+                        )
+                    })?;
+                let cookie = build_session_cookie(
+                    &sid,
+                    s.config.app_origin.scheme() == "https",
+                    time::Duration::hours(24),
+                );
+                AuditRepo::emit(
+                    &s.db,
+                    NewAuditEvent {
+                        actor_id: Some(u.id.clone()),
+                        actor_username: Some(u.username.clone()),
+                        action: "auth.magic_link_create".into(),
+                        target_kind: Some("user".into()),
+                        target_id: Some(u.id.clone()),
+                        target_name: Some(u.username.clone()),
+                        ip_address: None,
+                        metadata: None,
+                    },
+                );
+                return Ok((u.id, u.username, cookie));
+            }
+            Err(e) => {
+                last_err = Some(e);
+            }
+        }
+    }
+
+    Err((
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(ErrBody {
+            error: match last_err {
+                Some(_) => "user mint failed",
+                None => "user mint failed (unknown)",
+            },
+        }),
+    ))
 }
 
 /// Mount the five endpoints under the app origin. Workspace-scoped

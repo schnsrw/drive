@@ -330,7 +330,7 @@ pub(crate) fn cookie_name(secure: bool) -> &'static str {
     }
 }
 
-fn build_session_cookie(id: &str, secure: bool, ttl: time::Duration) -> String {
+pub fn build_session_cookie(id: &str, secure: bool, ttl: time::Duration) -> String {
     let name = cookie_name(secure);
     let max_age = ttl.whole_seconds().max(0);
     let secure_part = if secure { "; Secure" } else { "" };

@@ -19,7 +19,7 @@
  * Phase 1d — not wired here.
  */
 import { useEffect, useState } from "react";
-import { Building2, LogIn, UserPlus, X } from "lucide-react";
+import { Building2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -29,8 +29,6 @@ import {
 } from "../api/client.ts";
 import { useAuth } from "../auth/AuthContext.tsx";
 import { useWorkspaceMutator } from "../state/WorkspaceContext.tsx";
-
-const RETURN_TO_KEY = "cd:invite-return-to";
 
 interface Props {
   token: string;
@@ -42,7 +40,7 @@ type LoadState =
   | { kind: "error"; message: string };
 
 export function InviteAccept({ token }: Props) {
-  const { status } = useAuth();
+  const { refresh: refreshAuth } = useAuth();
   const setActive = useWorkspaceMutator();
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [accepting, setAccepting] = useState(false);
@@ -67,44 +65,32 @@ export function InviteAccept({ token }: Props) {
     };
   }, [token]);
 
-  // After sign-in, if we previously stashed a return URL for this
-  // invite, route back to the accept card. Triggers when the auth
-  // status transitions to "authed".
-  useEffect(() => {
-    if (status.kind !== "authed") return;
-    try {
-      const ret = sessionStorage.getItem(RETURN_TO_KEY);
-      if (ret && ret === window.location.pathname) {
-        sessionStorage.removeItem(RETURN_TO_KEY);
-      }
-    } catch {
-      /* ignored */
-    }
-  }, [status.kind]);
-
   async function onJoin() {
-    if (status.kind !== "authed") {
-      // Anonymous → bounce to sign-in with this page as the return.
-      try {
-        sessionStorage.setItem(RETURN_TO_KEY, window.location.pathname);
-      } catch {
-        /* private mode — no-op; the user will land on home post-auth */
-      }
-      window.history.pushState({}, "", "/");
-      window.dispatchEvent(new PopStateEvent("popstate"));
-      return;
-    }
     setAccepting(true);
     try {
       const resp = await acceptInvitation(token);
+      const workspaceName =
+        state.kind === "ready" ? state.peek.workspace_name : "workspace";
       if (resp.already_member) {
         toast.message("You're already a member of this workspace");
+      } else if (resp.created_user) {
+        // MU1 1d — magic-link auto-create. The server minted a
+        // fresh account + session for us. Toast the auto-generated
+        // username so the new user knows what they're signed in as
+        // (they can rename themselves in Settings → Profile).
+        toast.success(
+          `Welcome to ${workspaceName}. Your username is ${resp.created_user.username}.`,
+          { duration: 6000 },
+        );
+        // Re-bootstrap AuthContext so /api/me reflects the new
+        // session cookie that came back with the accept response.
+        // Without this the SPA would still think it's anonymous
+        // until the next reload.
+        await refreshAuth();
       } else {
-        toast.success(`Joined ${state.kind === "ready" ? state.peek.workspace_name : "workspace"}`);
+        toast.success(`Joined ${workspaceName}`);
       }
-      // Switch the active workspace to the one we just joined.
       setActive(resp.workspace_id);
-      // Route home.
       window.history.pushState({}, "", "/");
       window.dispatchEvent(new PopStateEvent("popstate"));
     } catch (err) {
@@ -296,26 +282,15 @@ export function InviteAccept({ token }: Props) {
               >
                 Not now
               </button>
-              {status.kind === "authed" ? (
-                <button
-                  type="button"
-                  className="cd-dialog-btn cd-dialog-btn--primary"
-                  onClick={onJoin}
-                  disabled={accepting}
-                >
-                  <UserPlus size={13} strokeWidth={1.8} />
-                  &nbsp;{accepting ? "Joining…" : "Join workspace"}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="cd-dialog-btn cd-dialog-btn--primary"
-                  onClick={onJoin}
-                >
-                  <LogIn size={13} strokeWidth={1.8} />
-                  &nbsp;Sign in to join
-                </button>
-              )}
+              <button
+                type="button"
+                className="cd-dialog-btn cd-dialog-btn--primary"
+                onClick={onJoin}
+                disabled={accepting}
+              >
+                <UserPlus size={13} strokeWidth={1.8} />
+                &nbsp;{accepting ? "Joining…" : "Join workspace"}
+              </button>
             </div>
           </>
         )}

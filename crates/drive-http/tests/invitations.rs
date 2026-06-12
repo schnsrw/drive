@@ -464,6 +464,71 @@ async fn unknown_token_peek_returns_404() {
 }
 
 #[tokio::test]
+async fn anonymous_accept_mints_user_session_and_membership() {
+    let state = fixture().await;
+    let app = router(state);
+    let alice_cookie = sign_in(&app, "alice").await;
+    let ws = create_team_workspace(&app, &alice_cookie).await;
+    let invite = create_invite(&app, &alice_cookie, &ws, r#"{"role":"member"}"#).await;
+    let token = invite["token"].as_str().unwrap();
+
+    // No cookie — anonymous magic-link accept.
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/invitations/{token}/accept"))
+                .header("host", APP)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(r.status(), StatusCode::OK);
+
+    // Response carries the workspace_id + the freshly-minted user.
+    let set_cookie = r
+        .headers()
+        .get("set-cookie")
+        .expect("magic-link accept should set a session cookie")
+        .to_str()
+        .unwrap()
+        .to_string();
+    let body: Value =
+        serde_json::from_slice(&r.into_body().collect().await.unwrap().to_bytes()).unwrap();
+    assert_eq!(body["workspace_id"], ws);
+    assert_eq!(body["already_member"], false);
+    let created = body["created_user"].as_object().expect("created_user payload");
+    assert!(created["user_id"].as_str().unwrap().len() > 0);
+    let new_username = created["username"].as_str().unwrap();
+    assert!(
+        new_username.starts_with("user-"),
+        "expected user-* username, got {new_username}"
+    );
+
+    // The Set-Cookie line carries a real session — using it on
+    // /api/me should return the new user.
+    let cookie = set_cookie.split(';').next().unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/me")
+                .header("host", APP)
+                .header("cookie", cookie)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(r.status(), StatusCode::OK);
+    let me: Value =
+        serde_json::from_slice(&r.into_body().collect().await.unwrap().to_bytes()).unwrap();
+    assert_eq!(me["admin"].as_str().unwrap(), new_username);
+}
+
+#[tokio::test]
 async fn admin_role_invitations_are_rejected_until_mu2() {
     let state = fixture().await;
     let app = router(state);

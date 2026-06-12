@@ -645,6 +645,14 @@ export interface InvitationPeek {
 export interface InvitationAcceptResp {
   workspace_id: string;
   already_member: boolean;
+  /** Present only when the accept minted a brand-new user (magic-
+   * link auto-create). The SPA's accept page uses this to greet
+   * the new user by their auto-generated username and prompt them
+   * to rename in Settings → Profile. */
+  created_user?: {
+    user_id: string;
+    username: string;
+  };
 }
 
 export interface CreateInvitationBody {

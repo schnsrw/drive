@@ -73,7 +73,6 @@ The OIDC floor is in. Filling out the team-collaboration story:
 
 | # | Item | Brief | Priority | Trigger |
 |---|---|---|---|---|
-| MU1 | Workspace invitations. **Phases 1a + 1b + 1c shipped.** 1a: migration 0013 + `WorkspaceInvitationRepo` + 5 endpoints + 8 integration tests. 1b: `InviteDialog`, switcher-footer entry, `/invite/<token>` accept route. 1c: Settings → Members tab — active members card (read-only; owner badge + role chip + monogram), pending-invitations card (status badges: active / exhausted / expired / revoked, with "X / Y used" + relative timestamps), per-invitation Revoke button gated behind a destructive `ConfirmDialog`. Personal workspaces render a friendly placeholder explaining there's no "members" concept. **Remaining**: 1d — magic-link auto-create (anonymous → mint user + session); per-member remove ships with MU2 role tiers. | [[workspace-invitations]] memory + (TODO) `docs/research/18-workspace-invitations.md` | P1 | 1d ships the locked "magic-link auto-create" path; per-member remove ships with MU2 |
 | MU2 | Role tiers beyond Owner / Member (Viewer, Editor, Admin) | — (needs brief) | P2 | After MU1 |
 | MU3 | Server-mediated email (transactional: invite / share / quota-request) | — (needs brief) | P2 | After MU1 |
 | MU4 | OIDC group → role mapping (admin group, per-workspace group claims) | [`12-oidc`](./docs/research/12-oidc.md) §"admin_group" extension | P2 | After MU1 + MU2 |
