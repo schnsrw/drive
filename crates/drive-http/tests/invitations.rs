@@ -502,7 +502,7 @@ async fn anonymous_accept_mints_user_session_and_membership() {
     let created = body["created_user"]
         .as_object()
         .expect("created_user payload");
-    assert!(created["user_id"].as_str().unwrap().len() > 0);
+    assert!(!created["user_id"].as_str().unwrap().is_empty());
     let new_username = created["username"].as_str().unwrap();
     assert!(
         new_username.starts_with("user-"),
