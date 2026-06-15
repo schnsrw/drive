@@ -126,7 +126,6 @@ User flagged five post-reskin regressions in rapid succession. Capture verbatim,
 | # | Item | Brief | Priority | Trigger |
 |---|---|---|---|---|
 | BUG-IFRAME-CSS | Drive CSS bleeds inside the .docx / .xlsx iframe — the whole point of the iframe was to stop this; still happening. Verify the iframe is a true cross-document mount (not srcdoc / not a portal); check if any `<link>` in `embed.html` or any postMessage handler injects parent stylesheets; check if the SDK adopts parent `adoptedStyleSheets`. | — (needs note in `project_unified_editor_lifecycle`) | P0 | Reproduced; fix before next push touching the editor |
-| BUG-CONSISTENCY | "no consistency" — post-reskin the surface lost the visual rhythm. Diagnose: sweep all surfaces (Sidebar, header, file cards, modals, settings, notes) and tighten spacing / type / color back to the design system. | [[design-reskin-slate-console]] | P0 | Walk every flow with the user |
 
 ## Theme: Marketing site / docs
 

@@ -199,9 +199,9 @@ function Page({ kind }: { kind: FileKind }) {
           <div
             key={i}
             style={{
-              borderRight: "1px solid rgba(46,140,90,.18)",
-              borderBottom: "1px solid rgba(46,140,90,.18)",
-              background: i < 4 ? "rgba(46,140,90,.14)" : "transparent",
+              borderRight: "1px solid rgba(8, 145, 178, .22)",
+              borderBottom: "1px solid rgba(8, 145, 178, .22)",
+              background: i < 4 ? "rgba(8, 145, 178, .16)" : "transparent",
             }}
           />
         ))}

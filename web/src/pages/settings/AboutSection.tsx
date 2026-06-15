@@ -106,7 +106,7 @@ export function AboutSection() {
           }}
         >
           Built on Rust, Axum, OpenDAL, sqlx, React, Vite, Radix Primitives, and the WOPI protocol.
-          Typography by Fraunces and Hanken Grotesk. Icons by Lucide.
+          Typography by IBM Plex Sans and IBM Plex Mono. Icons by Lucide.
         </p>
       </SettingsCard>
     </>
