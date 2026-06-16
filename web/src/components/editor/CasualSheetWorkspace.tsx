@@ -17,13 +17,18 @@
  * `scripts/copy-embed.mjs` at prebuild time.
  */
 
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import { CasualSheetsIframe, type HostFileBridge } from "@schnsrw/casual-sheets/sheets";
+import {
+  CasualSheetsIframe,
+  type CasualSheetsIframeRef,
+  type HostFileBridge,
+} from "@schnsrw/casual-sheets/sheets";
 
 import { type FileDto } from "../../api/client.ts";
 import { DriveFileSource } from "../../file-source/DriveFileSource.ts";
 import { withSaveStatus, type OnSaveStatus } from "./save-status.ts";
+import { SheetToolbar, type SheetFormatState } from "./SheetToolbar.tsx";
 
 export interface IframeErrorData {
   code: "embed_not_served" | "load_failed" | "parse_failed" | "boot_failed" | "internal";
@@ -43,6 +48,14 @@ export interface CasualSheetWorkspaceProps {
    *  card so users never see the SDK's raw error UI. */
   onError?: (data: IframeErrorData) => void;
 }
+
+const IDLE_FORMAT_STATE: SheetFormatState = {
+  bold: false,
+  italic: false,
+  underline: false,
+  strikethrough: false,
+  align: null,
+};
 
 export function CasualSheetWorkspace({
   file,
@@ -73,14 +86,45 @@ export function CasualSheetWorkspace({
 
   const embedBasePath = `${import.meta.env.BASE_URL}embed/sheets`;
 
+  // Drive-side toolbar + format state — sheet 0.6+ wire.
+  const iframeRef = useRef<CasualSheetsIframeRef | null>(null);
+  const [formatState, setFormatState] = useState<SheetFormatState>(IDLE_FORMAT_STATE);
+
+  // Reset format state when the workbook changes so a stale flag
+  // doesn't ride over into the new file.
+  useEffect(() => {
+    setFormatState(IDLE_FORMAT_STATE);
+  }, [file.id]);
+
+  if (mode === "preview") {
+    return (
+      <CasualSheetsIframe
+        ref={iframeRef}
+        fileSource={bridge}
+        docId={file.id}
+        viewMode={mode}
+        embedBasePath={embedBasePath}
+        testId="casual-sheet-workspace"
+        onError={onError}
+      />
+    );
+  }
+
   return (
-    <CasualSheetsIframe
-      fileSource={bridge}
-      docId={file.id}
-      viewMode={mode}
-      embedBasePath={embedBasePath}
-      testId="casual-sheet-workspace"
-      onError={onError}
-    />
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
+      <SheetToolbar iframeRef={iframeRef} formatState={formatState} />
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <CasualSheetsIframe
+          ref={iframeRef}
+          fileSource={bridge}
+          docId={file.id}
+          viewMode={mode}
+          embedBasePath={embedBasePath}
+          testId="casual-sheet-workspace"
+          onError={onError}
+          onSelectionFormatState={setFormatState}
+        />
+      </div>
+    </div>
   );
 }

@@ -21,8 +21,8 @@ importers:
         specifier: ^1.1.16
         version: 1.1.16(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@schnsrw/casual-sheets':
-        specifier: ^0.5.7
-        version: 0.5.7(e7673f86d38ae6c404dfa5ccc8a17956)
+        specifier: ^0.6.0
+        version: 0.6.0(e7673f86d38ae6c404dfa5ccc8a17956)
       '@schnsrw/docx-js-editor':
         specifier: ^1.1.7
         version: 1.1.7(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(prosemirror-commands@1.7.1)(prosemirror-dropcursor@1.8.2)(prosemirror-history@1.5.0)(prosemirror-keymap@1.2.3)(prosemirror-model@1.25.7)(prosemirror-state@1.4.4)(prosemirror-tables@1.8.5)(prosemirror-transform@1.12.0)(prosemirror-view@1.41.8)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(y-prosemirror@1.3.7(prosemirror-model@1.25.7)(prosemirror-state@1.4.4)(prosemirror-view@1.41.8)(y-protocols@1.0.7(yjs@13.6.31))(yjs@13.6.31))(y-websocket@3.0.0(yjs@13.6.31))(yjs@13.6.31)
@@ -1537,8 +1537,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@schnsrw/casual-sheets@0.5.7':
-    resolution: {integrity: sha512-u1XoFapo1e5RpMTmDQ02NUO1M88CAN0smgTsfJVrrSQjJka/kQXj2RFqrxfcR9NgfD3rc/jMRdRQcj7IrV+jsw==}
+  '@schnsrw/casual-sheets@0.6.0':
+    resolution: {integrity: sha512-9iVFGAOsWbQOCYgPsrKiKi9HYpfex2mDiei2rP5agchA7Z0FIG9CA2UCqy/2Quooy+MZmUySzqc9u2G72dl3Xw==}
     peerDependencies:
       '@univerjs/core': ^0.24.0
       '@univerjs/design': ^0.24.0
@@ -4459,7 +4459,7 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.61.1':
     optional: true
 
-  '@schnsrw/casual-sheets@0.5.7(e7673f86d38ae6c404dfa5ccc8a17956)':
+  '@schnsrw/casual-sheets@0.6.0(e7673f86d38ae6c404dfa5ccc8a17956)':
     dependencies:
       exceljs: 4.4.0
     optionalDependencies:
