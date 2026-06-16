@@ -34,9 +34,21 @@ export interface CasualDocEditorProps {
   /** Optional callback that fires on every save attempt. Drives the
    *  "Saving… / Saved / Failed" pill in `<FileFullscreen>`. */
   onSaveStatus?: OnSaveStatus;
+  /** Fires when the iframe surfaces a parse / load / boot failure.
+   *  Drive's PreviewStage swaps the iframe for a friendly fallback
+   *  card so users never see the SDK's raw error UI. */
+  onError?: (data: {
+    code: "embed_not_served" | "load_failed" | "parse_failed" | "boot_failed" | "internal";
+    message: string;
+  }) => void;
 }
 
-export function CasualDocEditor({ file, mode = "preview", onSaveStatus }: CasualDocEditorProps) {
+export function CasualDocEditor({
+  file,
+  mode = "preview",
+  onSaveStatus,
+  onError,
+}: CasualDocEditorProps) {
   // Latch the callback so the wrapped source isn't recreated on every
   // host render (the host can swap the function freely).
   const onSaveStatusRef = useRef(onSaveStatus);
@@ -62,6 +74,7 @@ export function CasualDocEditor({ file, mode = "preview", onSaveStatus }: Casual
       viewMode={mode}
       embedBasePath={embedBasePath}
       testId="casual-doc-editor"
+      onError={onError}
     />
   );
 }

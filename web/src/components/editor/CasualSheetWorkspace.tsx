@@ -25,6 +25,11 @@ import { type FileDto } from "../../api/client.ts";
 import { DriveFileSource } from "../../file-source/DriveFileSource.ts";
 import { withSaveStatus, type OnSaveStatus } from "./save-status.ts";
 
+export interface IframeErrorData {
+  code: "embed_not_served" | "load_failed" | "parse_failed" | "boot_failed" | "internal";
+  message: string;
+}
+
 export interface CasualSheetWorkspaceProps {
   file: FileDto;
   /** `preview` = no toolbar, just canvas (modal mount). `editor` =
@@ -33,12 +38,17 @@ export interface CasualSheetWorkspaceProps {
   /** Optional callback that fires on every save attempt. Drives the
    *  "Saving… / Saved / Failed" pill in `<FileFullscreen>`. */
   onSaveStatus?: OnSaveStatus;
+  /** Fires when the iframe surfaces a parse / load / boot failure.
+   *  Drive's PreviewStage swaps the iframe for a friendly fallback
+   *  card so users never see the SDK's raw error UI. */
+  onError?: (data: IframeErrorData) => void;
 }
 
 export function CasualSheetWorkspace({
   file,
   mode = "preview",
   onSaveStatus,
+  onError,
 }: CasualSheetWorkspaceProps) {
   // Latch the callback so the bridge memo doesn't churn when the
   // host re-renders for an unrelated reason. The host can swap the
@@ -70,6 +80,7 @@ export function CasualSheetWorkspace({
       viewMode={mode}
       embedBasePath={embedBasePath}
       testId="casual-sheet-workspace"
+      onError={onError}
     />
   );
 }

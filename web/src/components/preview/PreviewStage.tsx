@@ -35,6 +35,11 @@ const CasualSheetWorkspace = lazy(() =>
     default: m.CasualSheetWorkspace,
   })),
 );
+// vidstack ships ~120 KB of player chrome + ~30 KB of default-layout
+// CSS. Only video / audio previews pay this cost.
+const DrivenMediaPlayer = lazy(() =>
+  import("./MediaPlayer.tsx").then((m) => ({ default: m.DrivenMediaPlayer })),
+);
 
 const TEXT_CAP_BYTES = 512 * 1024; // 512 KB
 const MD_CAP_BYTES = 256 * 1024; // 256 KB
@@ -67,13 +72,13 @@ export function PreviewStage({ file, kind }: PreviewStageProps) {
         <Suspense fallback={<EditorLoading />}>
           {/* mode='preview' hides the toolbar inside the iframe so the
               modal stage renders JUST the document canvas. */}
-          <CasualDocEditor file={file} mode="preview" />
+          <ErrorAwareDoc file={file} />
         </Suspense>
       );
     case "sheet":
       return (
         <Suspense fallback={<EditorLoading />}>
-          <CasualSheetWorkspace file={file} mode="preview" />
+          <ErrorAwareSheet file={file} />
         </Suspense>
       );
     default:
@@ -127,18 +132,9 @@ function PdfStage({ file }: { file: FileDto }) {
 function VideoStage({ file }: { file: FileDto }) {
   return (
     <div style={mediaWrap()}>
-      <video
-        controls
-        preload="metadata"
-        src={downloadUrl(file.id)}
-        style={{
-          maxWidth: "100%",
-          maxHeight: "100%",
-          borderRadius: 10,
-          boxShadow: "0 8px 28px rgba(15, 23, 42,.15)",
-          background: "black",
-        }}
-      />
+      <Suspense fallback={<MediaLoading kind="video" />}>
+        <DrivenMediaPlayer file={file} kind="video" />
+      </Suspense>
     </div>
   );
 }
@@ -149,8 +145,27 @@ function AudioStage({ file }: { file: FileDto }) {
   return (
     <div style={{ ...mediaWrap(), flexDirection: "column", gap: 18 }}>
       <FileThumb name={file.name} kind="aud" size="big" />
-      <audio controls src={downloadUrl(file.id)} style={{ width: "min(360px, 80%)" }} />
+      <Suspense fallback={<MediaLoading kind="audio" />}>
+        <DrivenMediaPlayer file={file} kind="audio" />
+      </Suspense>
     </div>
+  );
+}
+
+function MediaLoading({ kind }: { kind: "video" | "audio" }) {
+  return (
+    <div
+      role="status"
+      aria-label={`Loading ${kind} player`}
+      style={{
+        width: kind === "video" ? "min(960px, 100%)" : "min(640px, 100%)",
+        aspectRatio: kind === "video" ? "16 / 9" : "auto",
+        height: kind === "audio" ? 88 : undefined,
+        borderRadius: 12,
+        background: "var(--bg-subtle)",
+        border: "1px solid var(--line)",
+      }}
+    />
   );
 }
 
@@ -380,6 +395,22 @@ function Loading({ label }: { label: string }) {
       <style>{`@keyframes cd-spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
+}
+
+/** Wraps the doc editor iframe with a Drive-side error state. When the
+ *  SDK fires `casual.error` for a parse / load / boot failure we render
+ *  FailureFallback instead of the iframe so users never see the raw
+ *  SDK error UI ("Failed to Load Document", red stack-trace text). */
+function ErrorAwareDoc({ file }: { file: FileDto }) {
+  const [errored, setErrored] = useState(false);
+  if (errored) return <FailureFallback file={file} />;
+  return <CasualDocEditor file={file} mode="preview" onError={() => setErrored(true)} />;
+}
+
+function ErrorAwareSheet({ file }: { file: FileDto }) {
+  const [errored, setErrored] = useState(false);
+  if (errored) return <FailureFallback file={file} />;
+  return <CasualSheetWorkspace file={file} mode="preview" onError={() => setErrored(true)} />;
 }
 
 function FailureFallback({ file }: { file: FileDto }) {
