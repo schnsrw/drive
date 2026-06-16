@@ -78,6 +78,40 @@ for (const [pkg, subdir, anchor] of PACKAGES) {
     if (existsSync(htmlPath)) {
       const raw = readFileSync(htmlPath, "utf8");
       let patched = raw;
+
+      // Force the iframe to render light theme — Drive itself is light
+      // only today, and the SDK's `data-theme="auto"` default makes the
+      // iframe diverge whenever the user's OS prefers dark. We can't
+      // ship dark mode parity until Drive has a theme toggle and a
+      // host → iframe `command.set.theme` hookup. Until then, pin the
+      // iframe to light so the chrome matches the host page.
+      //
+      // Implementation: an inline <script> set to fire BEFORE the SDK's
+      // own module-script. It sets data-theme="light" on initial parse
+      // AND installs a MutationObserver that resets the attribute if
+      // the SDK toggles it after mount. Both surfaces (sheet + doc).
+      const themeLock =
+        `<script>` +
+        `document.documentElement.setAttribute('data-theme','light');` +
+        `new MutationObserver(function(){` +
+        `if(document.documentElement.getAttribute('data-theme')!=='light'){` +
+        `document.documentElement.setAttribute('data-theme','light');` +
+        `}` +
+        `}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});` +
+        `</script>`;
+      if (!patched.includes("data-theme','light'")) {
+        // Inject right after </style> so it runs after the inline CSS
+        // is in place but before the module script imports the SDK.
+        if (patched.includes("</style>")) {
+          patched = patched.replace("</style>", "</style>\n    " + themeLock);
+        } else if (patched.includes('<script type="module"')) {
+          patched = patched.replace(
+            /<script type="module"/,
+            themeLock + '\n    <script type="module"',
+          );
+        }
+      }
+
       const cssFile = resolve(dstDir, "embed-runtime.css");
       if (!existsSync(cssFile)) {
         patched = patched.replace(
