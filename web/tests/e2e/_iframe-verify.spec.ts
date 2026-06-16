@@ -62,7 +62,7 @@ test("embed runtime is reachable at /embed/sheets and /embed/docs", async ({ pag
   expect(docRuntime.status()).toBe(200);
 });
 
-test("create new .xlsx → card click routes to /file/<id> + editor iframe", async ({ page }) => {
+test("create new .xlsx → card double-click routes to /file/<id> + editor iframe", async ({ page }) => {
   const errors = installErrorListener(page);
 
   // Click New → New spreadsheet
@@ -78,12 +78,11 @@ test("create new .xlsx → card click routes to /file/<id> + editor iframe", asy
     timeout: 8_000,
   });
 
-  // Click the new file card — target the card class, not bare text.
-  // Editor-eligible files (.xlsx) skip the PreviewModal entirely and
-  // route straight to /file/<id> in editor mode.
+  // Double-click the new file card — single click opens the preview
+  // modal (every file type), double click opens the editor route.
   const card = page.locator(".cd-file-card").filter({ hasText: /Untitled spreadsheet/i });
   await card.scrollIntoViewIfNeeded();
-  await card.click();
+  await card.dblclick();
 
   await expect(page).toHaveURL(/\/file\//, { timeout: 5_000 });
   const iframe = page.getByTestId("casual-sheet-workspace");
@@ -102,7 +101,7 @@ test("create new .xlsx → card click routes to /file/<id> + editor iframe", asy
   }
 });
 
-test("create new .docx → card click routes to /file/<id> + editor iframe", async ({ page }) => {
+test("create new .docx → card double-click routes to /file/<id> + editor iframe", async ({ page }) => {
   const errors = installErrorListener(page);
 
   await page.getByRole("button", { name: /^New$/ }).click();
@@ -112,7 +111,7 @@ test("create new .docx → card click routes to /file/<id> + editor iframe", asy
 
   const card = page.locator(".cd-file-card").filter({ hasText: /Untitled \d+\.docx/i });
   await card.scrollIntoViewIfNeeded();
-  await card.click();
+  await card.dblclick();
 
   await expect(page).toHaveURL(/\/file\//, { timeout: 5_000 });
   const iframe = page.getByTestId("casual-doc-editor");
@@ -138,7 +137,7 @@ test("card click on a .xlsx → /file/<id> mounts iframe in editor mode", async 
 
   const card = page.locator(".cd-file-card").filter({ hasText: /Untitled spreadsheet/i });
   await card.scrollIntoViewIfNeeded();
-  await card.click();
+  await card.dblclick();
 
   await expect(page).toHaveURL(/\/file\//, { timeout: 5_000 });
 

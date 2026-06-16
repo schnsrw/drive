@@ -26,12 +26,12 @@ test.beforeEach(async ({ page }) => {
   await signInDemo(page);
 });
 
-test("click .xlsx card routes straight to /file/<id> with editor chrome", async ({ page }) => {
-  // The demo seeds a 'Q2 planning.xlsx' file at the workspace root.
-  // Editor-eligible files (.xlsx) bypass the PreviewModal entirely —
-  // a single click routes to /file/<id> in editor mode (per the
-  // 2026-06-15 UX directive that the modal-first flow was wasteful).
-  await page.getByText("Q2 planning.xlsx").first().click();
+test("double-click .xlsx card routes to /file/<id> with editor chrome", async ({ page }) => {
+  // Click model (2026-06-16 directive):
+  //   - single click → PreviewModal (metadata + preview) for ALL types
+  //   - double click → /file/<id> editor view for ALL types
+  // The demo seeds 'Q2 planning.xlsx' at the workspace root.
+  await page.getByText("Q2 planning.xlsx").first().dblclick();
 
   await expect(page).toHaveURL(/\/file\//, { timeout: 5_000 });
   await expect(page.getByTestId("file-fullscreen")).toBeVisible();
@@ -48,8 +48,8 @@ test("click .xlsx card routes straight to /file/<id> with editor chrome", async 
   await expect(fullscreenStage).toBeVisible({ timeout: 15_000 });
 });
 
-test("click .docx card routes straight to /file/<id>", async ({ page }) => {
-  await page.getByText("Product brief.docx").first().click();
+test("double-click .docx card routes to /file/<id>", async ({ page }) => {
+  await page.getByText("Product brief.docx").first().dblclick();
 
   await expect(page).toHaveURL(/\/file\//, { timeout: 5_000 });
   await expect(page.getByTestId("file-fullscreen")).toBeVisible();
@@ -80,7 +80,7 @@ test("/file/<unknown> cold load surfaces the not-found error", async ({ page }) 
 });
 
 test("back arrow returns from /file/<id> to /", async ({ page }) => {
-  await page.getByText("Q2 planning.xlsx").first().click();
+  await page.getByText("Q2 planning.xlsx").first().dblclick();
   await expect(page).toHaveURL(/\/file\//, { timeout: 5_000 });
   await page.getByTestId("file-fullscreen-back").click();
   await expect(page).toHaveURL(/\/(\?.*)?$/);
@@ -90,7 +90,7 @@ test("back arrow returns from /file/<id> to /", async ({ page }) => {
 });
 
 test("document.title tracks the open file's name", async ({ page }) => {
-  await page.getByText("Q2 planning.xlsx").first().click();
+  await page.getByText("Q2 planning.xlsx").first().dblclick();
   await expect(page).toHaveURL(/\/file\//, { timeout: 5_000 });
   // Tab title flips to include the filename. (The fullscreen page
   // restores the prior title on unmount.)

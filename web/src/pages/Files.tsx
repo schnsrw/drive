@@ -389,43 +389,24 @@ export function Files({
   // there (different folder or a search result that didn't survive the
   // last fetch), fall back to fetching its metadata and opening anyway.
   useEffect(() => {
-    function routeOrPreview(target: FileDto, idx: number | null) {
-      const kind = inferKind(target.name, target.content_type);
-      if (kind === "doc" || kind === "sheet") {
-        const url = `/file/${encodeURIComponent(target.id)}`;
-        window.history.pushState({ file: target }, "", url);
-        window.dispatchEvent(new PopStateEvent("popstate"));
-        return;
-      }
-      if (idx !== null) setPreviewIdx(idx);
-    }
     function onOpen(e: Event) {
       const id = (e as CustomEvent<string>).detail;
       if (!id) return;
       if (state.kind !== "ready") return;
       const idx = state.files.findIndex((f) => f.id === id);
       if (idx >= 0) {
-        routeOrPreview(state.files[idx], idx);
+        setPreviewIdx(idx);
         return;
       }
       // Not in the current pane — pull it as a singleton list so the
-      // preview modal has something to render (for non-editor types;
-      // editor types route to /file/<id> directly).
+      // preview modal has something to render.
       void (async () => {
         try {
           const meta = await fetch(`/api/files/${encodeURIComponent(id)}`)
             .then((r) => (r.ok ? r.json() : null))
             .catch(() => null);
           if (meta && typeof meta === "object" && "id" in meta) {
-            const file = meta as FileDto;
-            const kind = inferKind(file.name, file.content_type);
-            if (kind === "doc" || kind === "sheet") {
-              const url = `/file/${encodeURIComponent(file.id)}`;
-              window.history.pushState({ file }, "", url);
-              window.dispatchEvent(new PopStateEvent("popstate"));
-              return;
-            }
-            setState({ kind: "ready", folders: [], files: [file] });
+            setState({ kind: "ready", folders: [], files: [meta as FileDto] });
             setPreviewIdx(0);
           }
         } catch {
@@ -829,26 +810,69 @@ export function Files({
 
   // Per-entry menu handlers — built once, accept the entry inline so the
   // menu in every row/card binds to the right target.
+  //
+  // Click model (user directive, 2026-06-16):
+  //   - Single left-click on a card → PreviewModal (metadata + preview)
+  //     for ALL file types — video, md, pdf, sheet, docx, image, etc.
+  //   - Double left-click on a card → `/file/<id>` editor view, also
+  //     for ALL file types.
+  //   - Menu "Open" mirrors double-click (jump to the editor route).
+  //   - Menu "Preview" mirrors single-click (modal).
+  //   - Menu "See details" mirrors Preview today; Phase 2 will replace
+  //     it with a dedicated details panel (sharing + roles + audit log).
+  //
+  // Single-click debounce — the browser always fires `click` before
+  // `dblclick`, so a naive single-click handler that opens the modal
+  // would intercept the second click and the dblclick handler would
+  // never fire (or fire against the modal overlay). Hold the
+  // single-click action behind a 250 ms timer; if a dblclick lands
+  // first, cancel the pending modal and route to the editor instead.
+  const singleClickTimerRef = useRef<number | null>(null);
+  function openInEditorRoute(entry: Entry) {
+    if (singleClickTimerRef.current !== null) {
+      window.clearTimeout(singleClickTimerRef.current);
+      singleClickTimerRef.current = null;
+    }
+    if (entry.kind === "folder") {
+      enterFolder(entry.folder);
+      return;
+    }
+    const url = `/file/${encodeURIComponent(entry.file.id)}`;
+    window.history.pushState({ file: entry.file }, "", url);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }
+  function handleSingleOrDouble(_file: FileDto, idx: number) {
+    if (singleClickTimerRef.current !== null) {
+      window.clearTimeout(singleClickTimerRef.current);
+    }
+    singleClickTimerRef.current = window.setTimeout(() => {
+      singleClickTimerRef.current = null;
+      setPreviewIdx(idx);
+    }, 250);
+  }
+
   function handlersFor(entry: MenuEntry): EntryMenuHandlers {
-    const openFile = (id: string) => {
-      const i = fileList.findIndex((f) => f.id === id);
-      if (i < 0) return;
-      const target = fileList[i];
-      // Editor-eligible files (.docx, .xlsx, and any future co-edit
-      // formats wired into `inferKind`) bypass the PreviewModal and
-      // route straight to /file/<id> — the modal-first flow had a
-      // wasteful "click again to actually open" step the user pushed
-      // back on. Non-editor files (PDF, images, video, raw text, etc.)
-      // still get the modal as their preview surface.
-      const kind = inferKind(target.name, target.content_type);
-      if (kind === "doc" || kind === "sheet") {
-        const url = `/file/${encodeURIComponent(target.id)}`;
-        window.history.pushState({ file: target }, "", url);
-        window.dispatchEvent(new PopStateEvent("popstate"));
-        return;
-      }
-      setPreviewIdx(i);
+    // `Open` → editor route for every file type. The FileFullscreen
+    // page already branches on inferKind to mount the right SDK
+    // (CasualDoc / CasualSheet / image viewer / video / PDF / text /
+    // generic download), so this works for non-editor types too.
+    const openInEditor = (target: FileDto) => {
+      const url = `/file/${encodeURIComponent(target.id)}`;
+      window.history.pushState({ file: target }, "", url);
+      window.dispatchEvent(new PopStateEvent("popstate"));
     };
+    const preview = (id: string) => {
+      const i = fileList.findIndex((f) => f.id === id);
+      if (i >= 0) setPreviewIdx(i);
+    };
+    const open = (id: string) => {
+      const target = fileList.find((f) => f.id === id);
+      if (target) openInEditor(target);
+    };
+    // `See details` opens the same PreviewModal as Preview today.
+    // Phase 2 swaps to a dedicated panel that shows people-with-access
+    // (sharing) + manage-by-roles + audit log of that file.
+    const details = (id: string) => preview(id);
     if (entry.kind === "folder") {
       return {
         onOpen: () => enterFolder(entry.folder),
@@ -862,9 +886,9 @@ export function Files({
     }
     const file = entry.file;
     return {
-      onOpen: () => openFile(file.id),
-      onPreview: () => openFile(file.id),
-      onDetails: () => openFile(file.id),
+      onOpen: () => open(file.id),
+      onPreview: () => preview(file.id),
+      onDetails: () => details(file.id),
       onRename: () => setRenaming(entry),
       onShare: () => setSharing(file),
       onDownload: () => {
@@ -1147,21 +1171,14 @@ export function Files({
               onEntryClick={(e, entry) => {
                 const action = handleEntryClick(e, entry, filteredEntries);
                 if (action !== "open") return;
-                if (entry.kind === "folder") enterFolder(entry.folder);
-                else {
+                if (entry.kind === "folder") {
+                  enterFolder(entry.folder);
+                } else {
                   const i = fileList.findIndex((f) => f.id === entry.file.id);
-                  if (i < 0) return;
-                  const target = fileList[i];
-                  const kind = inferKind(target.name, target.content_type);
-                  if (kind === "doc" || kind === "sheet") {
-                    const url = `/file/${encodeURIComponent(target.id)}`;
-                    window.history.pushState({ file: target }, "", url);
-                    window.dispatchEvent(new PopStateEvent("popstate"));
-                  } else {
-                    setPreviewIdx(i);
-                  }
+                  if (i >= 0) handleSingleOrDouble(entry.file, i);
                 }
               }}
+              onEntryDoubleClick={openInEditorRoute}
               handlersFor={handlersFor}
             />
           ) : (
@@ -1172,21 +1189,14 @@ export function Files({
               onEntryClick={(e, entry) => {
                 const action = handleEntryClick(e, entry, filteredEntries);
                 if (action !== "open") return;
-                if (entry.kind === "folder") enterFolder(entry.folder);
-                else {
+                if (entry.kind === "folder") {
+                  enterFolder(entry.folder);
+                } else {
                   const i = fileList.findIndex((f) => f.id === entry.file.id);
-                  if (i < 0) return;
-                  const target = fileList[i];
-                  const kind = inferKind(target.name, target.content_type);
-                  if (kind === "doc" || kind === "sheet") {
-                    const url = `/file/${encodeURIComponent(target.id)}`;
-                    window.history.pushState({ file: target }, "", url);
-                    window.dispatchEvent(new PopStateEvent("popstate"));
-                  } else {
-                    setPreviewIdx(i);
-                  }
+                  if (i >= 0) handleSingleOrDouble(entry.file, i);
                 }
               }}
+              onEntryDoubleClick={openInEditorRoute}
               handlersFor={handlersFor}
             />
           ))}
@@ -1736,12 +1746,14 @@ function GridView({
   uploading,
   selection,
   onEntryClick,
+  onEntryDoubleClick,
   handlersFor,
 }: {
   entries: Entry[];
   uploading: string[];
   selection: Set<string>;
   onEntryClick: (e: React.MouseEvent, entry: Entry) => void;
+  onEntryDoubleClick?: (entry: Entry) => void;
   handlersFor: (entry: MenuEntry) => EntryMenuHandlers;
 }) {
   return (
@@ -1759,6 +1771,7 @@ function GridView({
             folder={e.folder}
             selected={selection.has(e.folder.id)}
             onClick={(ev) => onEntryClick(ev, e)}
+            onDoubleClick={onEntryDoubleClick ? () => onEntryDoubleClick(e) : undefined}
             handlers={handlersFor(e)}
           />
         ) : (
@@ -1767,6 +1780,7 @@ function GridView({
             file={e.file}
             selected={selection.has(e.file.id)}
             onClick={(ev) => onEntryClick(ev, e)}
+            onDoubleClick={onEntryDoubleClick ? () => onEntryDoubleClick(e) : undefined}
             handlers={handlersFor(e)}
           />
         ),
@@ -1782,17 +1796,20 @@ function FolderCard({
   folder,
   selected,
   onClick,
+  onDoubleClick,
   handlers,
 }: {
   folder: FolderDto;
   selected: boolean;
   onClick: (e: React.MouseEvent) => void;
+  onDoubleClick?: (e: React.MouseEvent) => void;
   handlers: EntryMenuHandlers;
 }) {
   return (
     <EntryContextMenu entry={{ kind: "folder", folder }} handlers={handlers}>
       <Card
         onClick={onClick}
+        onDoubleClick={onDoubleClick}
         folder
         selected={selected}
         kebab={<EntryKebab entry={{ kind: "folder", folder }} handlers={handlers} />}
@@ -1810,11 +1827,13 @@ function FileCard({
   file,
   selected,
   onClick,
+  onDoubleClick,
   handlers,
 }: {
   file: FileDto;
   selected: boolean;
   onClick: (e: React.MouseEvent) => void;
+  onDoubleClick?: (e: React.MouseEvent) => void;
   handlers: EntryMenuHandlers;
 }) {
   const kind = inferKind(file.name, file.content_type);
@@ -1822,6 +1841,7 @@ function FileCard({
     <EntryContextMenu entry={{ kind: "file", file }} handlers={handlers}>
       <Card
         onClick={onClick}
+        onDoubleClick={onDoubleClick}
         selected={selected}
         kebab={<EntryKebab entry={{ kind: "file", file }} handlers={handlers} />}
       >
@@ -2022,12 +2042,14 @@ function ListView({
   uploading,
   selection,
   onEntryClick,
+  onEntryDoubleClick,
   handlersFor,
 }: {
   entries: Entry[];
   uploading: string[];
   selection: Set<string>;
   onEntryClick: (e: React.MouseEvent, entry: Entry) => void;
+  onEntryDoubleClick?: (entry: Entry) => void;
   handlersFor: (entry: MenuEntry) => EntryMenuHandlers;
 }) {
   return (
@@ -2077,6 +2099,7 @@ function ListView({
                 last={last}
                 selected={selection.has(e.folder.id)}
                 onClick={(ev) => onEntryClick(ev, e)}
+                onDoubleClick={onEntryDoubleClick ? () => onEntryDoubleClick(e) : undefined}
                 kebab={<EntryKebab entry={entry} handlers={handlers} />}
               />
             </EntryContextMenu>
@@ -2096,6 +2119,7 @@ function ListView({
               size={formatBytes(e.file.size)}
               selected={selection.has(e.file.id)}
               onClick={(ev) => onEntryClick(ev, e)}
+              onDoubleClick={onEntryDoubleClick ? () => onEntryDoubleClick(e) : undefined}
               last={last}
               kebab={<EntryKebab entry={entry} handlers={handlers} />}
               thumbnail={e.file.thumbnail}
