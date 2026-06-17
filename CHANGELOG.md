@@ -89,7 +89,7 @@ First feature-complete release. Single Rust binary; React 19 SPA embedded
 via `rust-embed`; SQLite by default, Postgres optional; four storage
 backends (fs / memory / S3 / MinIO) plus per-workspace BYO (S3 / MinIO /
 R2 / B2) with AES-256-GCM secret envelopes. Marketing site + live demo
-live at `drive.schnsrw.live`.
+live at `drive.casualoffice.org`.
 
 ### Identity + sessions
 
@@ -292,7 +292,7 @@ live at `drive.schnsrw.live`.
 
 ### Marketing site + GH Pages
 
-- New `marketing/` Astro 5 project at `https://drive.schnsrw.live`.
+- New `marketing/` Astro 5 project at `https://drive.casualoffice.org`.
   Multi-page docs site (landing + 4 docs MDX routes + screenshots + the
   embedded demo). Static HTML by default → indexable on first request.
 - Per-page SEO: unique title / description, canonical, OG + Twitter,
