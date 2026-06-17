@@ -1,0 +1,107 @@
+/**
+ * Slate Console theming for vidstack's default-layout. The library
+ * ships its chrome with CSS custom properties for color / radius /
+ * gap — we override the ones that visibly affect the player surface
+ * so it inherits Drive's palette (cyan accent, slate ink, deep-paper
+ * card surface) instead of vidstack's default purple-ish theme.
+ *
+ * Anything not overridden falls back to vidstack's defaults — those
+ * are already tasteful, no need to re-skin every knob.
+ */
+
+.cd-media-shell {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Vidstack scales the player to its container; cap so the chrome
+     stays comfortable even on a wide preview. */
+  --max-w: min(960px, 100%);
+}
+
+.cd-media-shell--video media-player {
+  width: var(--max-w);
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.22);
+  background: #000;
+}
+
+.cd-media-shell--audio media-player {
+  width: var(--max-w);
+  /* Audio layout is a horizontal bar — no aspect ratio constraint;
+     vidstack picks ~88px height. */
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--card);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+}
+
+/* ── Token overrides for the default video / audio layouts ──── */
+
+media-player,
+.vds-video-layout,
+.vds-audio-layout {
+  --media-brand: var(--accent);
+  --media-focus-ring-color: var(--accent);
+  --media-focus-ring-width: 2px;
+
+  /* Buttons */
+  --media-button-color: rgba(255, 255, 255, 0.92);
+  --media-button-hover-bg: rgba(255, 255, 255, 0.12);
+  --media-button-padding: 8px;
+  --media-button-icon-size: 20px;
+
+  /* Slider (scrubber + volume) — track + fill picked up from
+     --media-brand above so the scrubber + volume bar render in the
+     Drive cyan, not the vidstack default. */
+  --media-slider-track-bg: rgba(255, 255, 255, 0.2);
+  --media-slider-track-fill-bg: var(--accent-bright, var(--accent));
+  --media-slider-thumb-bg: #ffffff;
+  --media-slider-thumb-border: 2px solid var(--accent);
+  --media-slider-preview-bg: rgba(15, 23, 42, 0.96);
+  --media-slider-preview-color: #ffffff;
+
+  /* Menu / settings panel — slate paper to match Drive's surfaces. */
+  --media-menu-bg: var(--card);
+  --media-menu-color: var(--ink);
+  --media-menu-border: 1px solid var(--line-strong);
+  --media-menu-radius: 10px;
+  --media-menu-divider-color: var(--line);
+  --media-menu-hover-bg: var(--bg-hover);
+
+  /* Tooltip — match Drive's dark popover. */
+  --media-tooltip-bg: rgba(15, 23, 42, 0.96);
+  --media-tooltip-color: #ffffff;
+  --media-tooltip-border-radius: 8px;
+  --media-tooltip-padding: 6px 10px;
+
+  /* Captions text */
+  --media-caption-text-bg: rgba(15, 23, 42, 0.55);
+
+  /* Typography — inherit Drive's Plex Sans stack so timecodes /
+     menu items don't fall back to system-ui in dark mode. */
+  --media-font-family: var(--font-sans);
+}
+
+/* The audio layout's chrome lives on a light background; flip the
+   button colors so icons read as ink-on-paper instead of white. */
+.cd-media-shell--audio .vds-audio-layout,
+.cd-media-shell--audio media-player {
+  --media-button-color: var(--ink);
+  --media-button-hover-bg: var(--bg-hover);
+  --media-slider-track-bg: var(--line);
+  --media-slider-thumb-border: 2px solid var(--accent-hover);
+}
+
+/* Respect prefers-reduced-motion — vidstack honours it internally for
+   most transitions, but the shell's own shadow lift should pause too. */
+@media (prefers-reduced-motion: reduce) {
+  .cd-media-shell--video media-player,
+  .cd-media-shell--audio media-player {
+    box-shadow: none;
+  }
+}

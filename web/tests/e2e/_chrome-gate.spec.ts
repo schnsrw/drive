@@ -243,6 +243,17 @@ test("UX-EDITOR-8: Details History tab → friendly Coming soon", async ({ page 
   await expect(page.getByText(/Version history is coming/i)).toBeVisible();
 });
 
+test("UX-EDITOR-7: video preview mounts the vidstack player, not browser default", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  await page.getByText("Demo walkthrough.mp4").first().click();
+  // The vidstack default-layout adds a wrapping element with the
+  // 'cd-media-shell--video' class. The browser's bare <video controls>
+  // would have NO surrounding wrapper.
+  await expect(page.locator(".cd-media-shell--video")).toBeVisible({ timeout: 5_000 });
+});
+
 test("UX-EDITOR-2: doc iframe stays light-themed under prefers-color-scheme:dark", async ({
   page,
   context,
