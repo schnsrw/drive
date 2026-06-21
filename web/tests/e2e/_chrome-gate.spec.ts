@@ -116,26 +116,62 @@ test("UX-EDITOR-4: filename inline rename round-trips through PATCH", async ({ p
   await expect(page.getByTestId("file-fullscreen-title")).toHaveText("Renamed by gate.xlsx");
 });
 
-test("UX-EDITOR-1: sheet editor renders the SDK's built-in Office chrome", async ({ page }) => {
+test("UX-EDITOR-1: sheet editor has Drive toolbar with all v0.6 commands", async ({ page }) => {
   test.setTimeout(60_000);
   await openSheetEditor(page);
-  // Drive no longer hand-rolls a SheetToolbar — it direct-mounts
-  // <CasualSheets chrome="full">, so the SDK's own Office chrome renders:
-  // a formatting toolbar, a formula bar, and the worksheet tab strip.
-  await expect(page.getByTestId("casual-sheets-toolbar")).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByTestId("casual-sheets-formula-bar")).toBeVisible();
-  await expect(page.getByTestId("casual-sheets-tabs")).toBeVisible();
-  await expect(page.getByTestId("casual-sheets-status-bar")).toBeVisible();
+  await page.getByTestId("sheet-toolbar").waitFor({ timeout: 8_000 });
+  // Nine v0.6 commands — undo/redo, B/I/U/S, align L/C/R.
+  const commands = [
+    "undo",
+    "redo",
+    "bold",
+    "italic",
+    "underline",
+    "strikethrough",
+    "align-left",
+    "align-center",
+    "align-right",
+  ];
+  for (const cmd of commands) {
+    await expect(page.getByTestId(`sheet-tool-${cmd}`)).toBeVisible();
+  }
 });
 
-test("UX-EDITOR-1 v2: SDK toolbar exposes font family + size controls", async ({ page }) => {
+test("UX-EDITOR-1 v2: sheet toolbar renders rich-format widgets", async ({ page }) => {
   test.setTimeout(60_000);
   await openSheetEditor(page);
-  await page.getByTestId("casual-sheets-toolbar").waitFor({ timeout: 15_000 });
-  // Font family + size pickers come from the SDK chrome, driven through
-  // the facade with args intact (the old iframe ref dropped args).
-  await expect(page.getByTestId("cs-font-family")).toBeVisible();
-  await expect(page.getByTestId("cs-font-size")).toBeVisible();
+  await page.getByTestId("sheet-toolbar").waitFor({ timeout: 8_000 });
+  // Font family picker
+  await expect(page.getByTestId("sheet-tool-font-family")).toBeVisible();
+  // Font size stepper (− / value / +)
+  await expect(page.getByTestId("sheet-tool-font-size")).toBeVisible();
+  await expect(page.getByTestId("sheet-tool-font-size-dec")).toBeVisible();
+  await expect(page.getByTestId("sheet-tool-font-size-inc")).toBeVisible();
+  // Color popovers (text + fill)
+  await expect(page.getByTestId("sheet-tool-text-color")).toBeVisible();
+  await expect(page.getByTestId("sheet-tool-bg-color")).toBeVisible();
+  // Merge button
+  await expect(page.getByTestId("sheet-tool-merge")).toBeVisible();
+});
+
+test("UX-EDITOR-1 v2: font family picker opens menu with options", async ({ page }) => {
+  test.setTimeout(60_000);
+  await openSheetEditor(page);
+  await page.getByTestId("sheet-toolbar").waitFor({ timeout: 8_000 });
+  await page.getByTestId("sheet-tool-font-family").click();
+  await page.getByTestId("sheet-font-family-menu").waitFor({ timeout: 3_000 });
+  // Spot-check a few canonical options
+  await expect(page.getByTestId("sheet-font-calibri")).toBeVisible();
+  await expect(page.getByTestId("sheet-font-arial")).toBeVisible();
+  await expect(page.getByTestId("sheet-font-times-new-roman")).toBeVisible();
+});
+
+test("UX-EDITOR-1 v2: text color popover opens with swatches", async ({ page }) => {
+  test.setTimeout(60_000);
+  await openSheetEditor(page);
+  await page.getByTestId("sheet-toolbar").waitFor({ timeout: 8_000 });
+  await page.getByTestId("sheet-tool-text-color").click();
+  await expect(page.getByTestId("sheet-tool-text-color-swatch-0")).toBeVisible({ timeout: 3_000 });
 });
 
 test("UX-EDITOR-5: docx preview shows friendly fallback instead of parse error", async ({

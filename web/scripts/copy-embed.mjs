@@ -2,14 +2,10 @@
 /**
  * Copies the SDK iframe-embed runtime (embed.html + embed-runtime.*)
  * from each editor package's dist into Drive's public/embed/ tree so
- * the SPA can serve them same-origin. The `<CasualEditorIframe>`
- * component defaults `embedBasePath` to `/embed/docs` — this path
- * exists after this script runs and after Vite copies public/ to dist/.
- *
- * NB: the SHEET editor no longer uses the iframe path. Drive direct-mounts
- * `<CasualSheets chrome="full">` (its own Office chrome) per
- * `CasualSheetWorkspace.tsx`, so there's no `/embed/sheets/` to populate.
- * Only the docx editor (`@schnsrw/docx-js-editor`) still ships via iframe.
+ * the SPA can serve them same-origin. The `<CasualSheetsIframe>` and
+ * `<CasualEditorIframe>` components default `embedBasePath` to
+ * `/embed/sheets` and `/embed/docs` — these paths exist after this
+ * script runs and after Vite copies public/ to dist/.
  *
  * Runs at prebuild time (see package.json's `prebuild` script). The
  * resulting files are NOT committed (see .gitignore); they regenerate
@@ -26,8 +22,7 @@ const require_ = createRequire(import.meta.url);
 
 const PACKAGES = [
   // [npm name, public/embed/<subdir>, exports-key we use to anchor to the embed/ dir]
-  // Sheet uses the direct React mount (CasualSheets chrome="full"), not the
-  // iframe — so it's intentionally absent here.
+  ["@casualoffice/sheets", "sheets", "embed/embed.html"],
   ["@schnsrw/docx-js-editor", "docs", "embed/embed.html"],
 ];
 

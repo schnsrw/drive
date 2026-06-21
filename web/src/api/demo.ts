@@ -821,12 +821,6 @@ export async function demoRequest<T>(path: string, init: RequestInit & { json?: 
           version: state.files[idx].version + 1,
         };
         persist();
-        // Return the updated FileDto — the SDK content bridge
-        // (`DriveFileSource.save`) reads `id` + `version` off the
-        // response to bump its etag. Returning undefined here made the
-        // direct-mounted editor's autosave report "Save failed" in the
-        // demo even though the bytes were persisted.
-        return state.files[idx] as T;
       }
       return undefined as T;
     }
