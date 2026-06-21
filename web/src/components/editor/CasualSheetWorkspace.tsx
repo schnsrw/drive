@@ -9,9 +9,10 @@
  *     which the SDK enforces as READ-ONLY (no editing, no chrome). Drive
  *     adds no toolbar — it's a viewer.
  *   - `mode="editor"` (fullscreen `/file/<id>` route): iframe in
- *     `viewMode="editor"` (full editing) with DRIVE'S OWN chrome — the
- *     `<SheetToolbar>` ribbon above the grid, matching Drive's design
- *     language. We do NOT use the SDK's built-in chrome.
+ *     `viewMode="editor"` — the SDK renders the FULL editor chrome inside
+ *     the iframe (menu bar, formatting toolbar, formula bar, sheet tabs,
+ *     status bar). Drive does NOT hand-roll a toolbar; it only frames the
+ *     editor. The package IS the editor (Excalidraw model).
  *
  * Persistence (host stores, SDK never does): load/save bytes round-trip
  * through `<SheetEmbed>`'s `HostFileBridge`, backed by `DriveFileSource`
@@ -24,7 +25,7 @@
  * by `scripts/copy-embed.mjs` at prebuild time.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef } from "react";
 
 import { type FileDto } from "../../api/client.ts";
 import { DriveFileSource } from "../../file-source/DriveFileSource.ts";
@@ -35,7 +36,6 @@ import {
   type SheetEmbedError,
   type SheetEmbedRef,
 } from "./SheetEmbed.tsx";
-import { SheetToolbar, type SheetFormatState } from "./SheetToolbar.tsx";
 
 /** Re-export so existing host call sites that referenced the workspace's
  *  error type keep compiling. */
@@ -43,8 +43,8 @@ export type IframeErrorData = SheetEmbedError;
 
 export interface CasualSheetWorkspaceProps {
   file: FileDto;
-  /** `preview` = read-only, no toolbar (modal mount). `editor` = full
-   *  editing with Drive's own toolbar (fullscreen route). */
+  /** `preview` = read-only viewer (modal mount). `editor` = full editing;
+   *  the SDK renders its own chrome inside the iframe (fullscreen route). */
   mode?: "preview" | "editor";
   /** Fires on every save attempt. Drives the "Saving… / Saved / Failed"
    *  pill in `<FileFullscreen>`. */
@@ -53,18 +53,6 @@ export interface CasualSheetWorkspaceProps {
    *  Drive's PreviewStage can swap in a friendly fallback card. */
   onError?: (data: IframeErrorData) => void;
 }
-
-const IDLE_FORMAT_STATE: SheetFormatState = {
-  bold: false,
-  italic: false,
-  underline: false,
-  strikethrough: false,
-  align: null,
-  fontFamily: null,
-  fontSize: null,
-  textColor: null,
-  bgColor: null,
-};
 
 export function CasualSheetWorkspace({
   file,
@@ -97,14 +85,6 @@ export function CasualSheetWorkspace({
   const embedBasePath = `${import.meta.env.BASE_URL}embed/sheets`;
 
   const iframeRef = useRef<SheetEmbedRef | null>(null);
-  const [formatState, setFormatState] = useState<SheetFormatState>(IDLE_FORMAT_STATE);
-
-  // Reset the toolbar's format state when the workbook changes so a stale
-  // flag doesn't ride over into the new file. Live updates arrive via the
-  // iframe's `onSelectionFormatState` wire below.
-  useEffect(() => {
-    setFormatState(IDLE_FORMAT_STATE);
-  }, [file.id]);
 
   if (mode === "preview") {
     // Read-only viewer — the SDK enforces read-only for viewMode=preview.
@@ -121,22 +101,17 @@ export function CasualSheetWorkspace({
     );
   }
 
-  // Full editor — Drive's OWN toolbar above the iframe grid.
+  // Full editor — the SDK renders the complete chrome inside the iframe;
+  // Drive only frames it (no hand-rolled toolbar).
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
-      <SheetToolbar iframeRef={iframeRef} formatState={formatState} />
-      <div style={{ flex: 1, minHeight: 0 }}>
-        <SheetEmbed
-          ref={iframeRef}
-          fileSource={bridge}
-          docId={file.id}
-          viewMode="editor"
-          embedBasePath={embedBasePath}
-          testId="casual-sheet-workspace"
-          onError={onError}
-          onSelectionFormatState={setFormatState}
-        />
-      </div>
-    </div>
+    <SheetEmbed
+      ref={iframeRef}
+      fileSource={bridge}
+      docId={file.id}
+      viewMode="editor"
+      embedBasePath={embedBasePath}
+      testId="casual-sheet-workspace"
+      onError={onError}
+    />
   );
 }

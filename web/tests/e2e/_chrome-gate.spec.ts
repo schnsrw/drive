@@ -10,9 +10,9 @@
  *   3. Filename inline rename round-trips                 (UX-EDITOR-4)
  *   4. SaveStatusPill testid mounts (idle state — no save fires
  *      against the demo's empty blobs, but the host shell is wired)
- *   5. Sheet editor at /file/<id> embeds the SDK iframe wrapped by
- *      DRIVE'S OWN toolbar with the 9 v0.6 commands
- *      (undo/redo, B/I/U/S, align L/C/R)                   (UX-EDITOR-1)
+ *   5. Sheet editor at /file/<id> embeds the SDK iframe, which renders
+ *      the FULL editor chrome itself (menu bar + formatting toolbar +
+ *      formula bar); Drive does not hand-roll a toolbar  (UX-EDITOR-1)
  *   6. Doc preview shows the friendly "Couldn't load preview" card
  *      instead of the SDK's red parse-error UI             (UX-EDITOR-5)
  *   7. Sheet preview shows the same friendly card          (UX-EDITOR-5)
@@ -103,39 +103,20 @@ test("UX-EDITOR-4: filename inline rename round-trips through PATCH", async ({ p
   await expect(page.getByTestId("file-fullscreen-title")).toHaveText("Renamed by gate.xlsx");
 });
 
-test("UX-EDITOR-1: sheet editor renders Drive's OWN toolbar around the iframe", async ({ page }) => {
+test("UX-EDITOR-1: sheet editor renders the SDK's full chrome inside the iframe", async ({
+  page,
+}) => {
   test.setTimeout(60_000);
   await openSheetEditor(page);
-  // Drive embeds the editor via <iframe> and renders its OWN chrome — the
-  // SheetToolbar ribbon above the grid (NOT the SDK's built-in chrome).
-  // Lock in the v0.6 command set: undo/redo, B/I/U/S, align L/C/R.
-  await expect(page.getByTestId("sheet-toolbar")).toBeVisible({ timeout: 15_000 });
-  for (const cmd of [
-    "undo",
-    "redo",
-    "bold",
-    "italic",
-    "underline",
-    "strikethrough",
-    "align-left",
-    "align-center",
-    "align-right",
-  ]) {
-    await expect(page.getByTestId(`sheet-tool-${cmd}`)).toBeVisible();
-  }
-  // The grid renders inside Drive's iframe (host owns the chrome, iframe
-  // owns the canvas).
-  await expect(page.getByTestId("casual-sheet-workspace")).toBeVisible();
-});
-
-test("UX-EDITOR-1 v2: Drive's toolbar exposes font family + size controls", async ({ page }) => {
-  test.setTimeout(60_000);
-  await openSheetEditor(page);
-  await page.getByTestId("sheet-toolbar").waitFor({ timeout: 15_000 });
-  // Drive's toolbar dispatches set-font-family / set-font-size over the
-  // embed transport's executeCommand (args carried intact).
-  await expect(page.getByTestId("sheet-tool-font-family")).toBeVisible();
-  await expect(page.getByTestId("sheet-tool-font-size")).toBeVisible();
+  // The package IS the editor (Excalidraw model): the SDK renders the full
+  // chrome — menu bar, formatting toolbar, formula bar — INSIDE the iframe.
+  // Drive only frames it; there is NO Drive-side toolbar.
+  await expect(page.getByTestId("sheet-toolbar")).toHaveCount(0);
+  const editor = page.frameLocator('[data-testid="casual-sheet-workspace"]');
+  await expect(editor.getByTestId("cs-menubar")).toBeVisible({ timeout: 20_000 });
+  await expect(editor.getByTestId("cs-namebox-input")).toBeVisible();
+  // The grid canvas paints inside the iframe.
+  await expect(editor.locator('[id^="univer-sheet-main-canvas_"]')).toBeVisible();
 });
 
 test("UX-EDITOR-5: docx preview shows friendly fallback instead of parse error", async ({

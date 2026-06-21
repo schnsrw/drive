@@ -13,7 +13,7 @@
     "screenshots": "node tests/e2e/marketing-screenshots.mjs"
   },
   "dependencies": {
-    "@casualoffice/sheets": "^0.11.1",
+    "@casualoffice/sheets": "^0.13.0",
     "@fontsource-variable/ibm-plex-sans": "^5.2.8",
     "@fontsource/ibm-plex-mono": "^5.2.7",
     "@formkit/auto-animate": "^0.9.0",
