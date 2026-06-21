@@ -26,7 +26,7 @@ test.beforeEach(async ({ page }) => {
   await signInDemo(page);
 });
 
-test("double-click .xlsx card routes to /file/<id> with editor chrome", async ({ page }) => {
+test("double-click .xlsx card routes to /file/<id> with the editor iframe", async ({ page }) => {
   // Click model (2026-06-16 directive):
   //   - single click → PreviewModal (metadata + preview) for ALL types
   //   - double click → /file/<id> editor view for ALL types

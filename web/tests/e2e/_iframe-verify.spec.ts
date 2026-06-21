@@ -51,17 +51,20 @@ test("templates fetch returns 200 (not 404)", async ({ page }) => {
   expect(docx.status()).toBe(200);
 });
 
-test("doc embed runtime is reachable at /embed/docs", async ({ page }) => {
-  // The SHEET editor no longer uses the iframe path — Drive direct-mounts
-  // <CasualSheets chrome="full">, so there is no /embed/sheets/. Only the
-  // docx editor still ships via the self-contained iframe runtime.
+test("embed runtimes are reachable at /embed/sheets and /embed/docs", async ({ page }) => {
+  // Drive embeds BOTH editors via same-origin iframes; copy-embed copies
+  // each SDK's runtime into public/embed/<app>/ at prebuild time.
+  const sheetHtml = await page.request.get(`/embed/sheets/embed.html`);
+  expect(sheetHtml.status()).toBe(200);
+  const sheetRuntime = await page.request.get(`/embed/sheets/embed-runtime.js`);
+  expect(sheetRuntime.status()).toBe(200);
   const docHtml = await page.request.get(`/embed/docs/embed.html`);
   expect(docHtml.status()).toBe(200);
   const docRuntime = await page.request.get(`/embed/docs/embed-runtime.mjs`);
   expect(docRuntime.status()).toBe(200);
 });
 
-test("create new .xlsx → card double-click routes to /file/<id> + direct-mount editor", async ({ page }) => {
+test("create new .xlsx → card double-click routes to /file/<id> + editor iframe renders the grid", async ({ page }) => {
   const errors = installErrorListener(page);
 
   // Click New → New spreadsheet
@@ -85,15 +88,20 @@ test("create new .xlsx → card double-click routes to /file/<id> + direct-mount
 
   await expect(page).toHaveURL(/\/file\//, { timeout: 5_000 });
 
-  // Sheet is now a DIRECT React mount of <CasualSheets chrome="full"> — a
-  // plain container, not an iframe. The blank.xlsx template parses, so the
-  // workspace reaches its ready state and the SDK's own Office chrome
-  // (toolbar / formula bar / sheet tabs) renders inside.
-  const workspace = page.getByTestId("casual-sheet-workspace");
-  await expect(workspace).toBeVisible({ timeout: 15_000 });
+  // Sheet embeds via <iframe> in editor mode (Univer runs inside the
+  // iframe runtime; Drive's app bundle carries no Univer).
+  const iframe = page.getByTestId("casual-sheet-workspace");
+  await expect(iframe).toBeVisible({ timeout: 15_000 });
+  await expect(iframe).toHaveAttribute("src", /viewMode=editor/);
 
-  // Give the editor a beat to boot Univer + paint the chrome.
-  await page.waitForTimeout(2_000);
+  // The blank.xlsx template parses, so the iframe actually paints Univer's
+  // grid canvas — assert it renders inside, not just that the element exists.
+  await page.waitForTimeout(3_000);
+  const canvasCount = await page
+    .frameLocator('[data-testid="casual-sheet-workspace"]')
+    .locator("canvas")
+    .count();
+  expect(canvasCount).toBeGreaterThan(0);
 
   // No console errors / page errors during the mount.
   if (errors.length > 0) {
@@ -131,7 +139,19 @@ test("create new .docx → card double-click routes to /file/<id> + editor ifram
   }
 });
 
-test("card double-click on a .xlsx → /file/<id> direct-mounts the editor", async ({ page }) => {
+test("single-click .xlsx → preview modal embeds the iframe in viewMode=preview (read-only)", async ({ page }) => {
+  // Drive's contract: preview ⇒ viewMode="preview", which the SDK
+  // enforces as read-only. Drive does NOT hand-roll a read-only guard —
+  // it just passes the mode and trusts the SDK. Here we lock in that Drive
+  // sends the right mode; SDK-side read-only enforcement is verified in the
+  // sheet SDK's own suite.
+  await page.getByText("Q2 planning.xlsx").first().click();
+  const iframe = page.getByTestId("casual-sheet-workspace");
+  await expect(iframe).toBeVisible({ timeout: 15_000 });
+  await expect(iframe).toHaveAttribute("src", /viewMode=preview/);
+});
+
+test("card double-click on a .xlsx → /file/<id> mounts the editor iframe in editor mode", async ({ page }) => {
   await page.getByRole("button", { name: /^New$/ }).click();
   await page.getByRole("menuitem", { name: /New spreadsheet/i }).click();
   await expect(page.getByText(/Created Untitled spreadsheet/i)).toBeHidden({
@@ -144,7 +164,8 @@ test("card double-click on a .xlsx → /file/<id> direct-mounts the editor", asy
 
   await expect(page).toHaveURL(/\/file\//, { timeout: 5_000 });
 
-  // Direct mount — a container div, not an iframe with a viewMode src.
-  const workspace = page.getByTestId("casual-sheet-workspace");
-  await expect(workspace).toBeVisible({ timeout: 15_000 });
+  // Iframe embed in editor mode (viewMode=editor in the iframe src).
+  const iframe = page.getByTestId("casual-sheet-workspace");
+  await expect(iframe).toBeVisible({ timeout: 15_000 });
+  await expect(iframe).toHaveAttribute("src", /viewMode=editor/);
 });

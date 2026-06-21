@@ -10,13 +10,12 @@
  *   3. Filename inline rename round-trips                 (UX-EDITOR-4)
  *   4. SaveStatusPill testid mounts (idle state — no save fires
  *      against the demo's empty blobs, but the host shell is wired)
- *   5. Sheet editor at /file/<id> has the Drive toolbar with the 9
- *      v0.6 commands (undo/redo, B/I/U/S, align L/C/R)    (UX-EDITOR-1)
+ *   5. Sheet editor at /file/<id> embeds the SDK iframe wrapped by
+ *      DRIVE'S OWN toolbar with the 9 v0.6 commands
+ *      (undo/redo, B/I/U/S, align L/C/R)                   (UX-EDITOR-1)
  *   6. Doc preview shows the friendly "Couldn't load preview" card
  *      instead of the SDK's red parse-error UI             (UX-EDITOR-5)
  *   7. Sheet preview shows the same friendly card          (UX-EDITOR-5)
- *   8. Iframe is light-themed even under prefers-color-scheme:dark
- *      (drive's copy-embed forces data-theme="light")     (UX-EDITOR-2)
  *
  * Future regressions land here, not in the per-PR visual specs.
  */
@@ -75,18 +74,6 @@ async function openSheetEditor(page: Page) {
   await page.getByTestId("file-fullscreen").waitFor({ timeout: 15_000 });
 }
 
-async function openDocEditor(page: Page) {
-  await page.getByRole("button", { name: /^New$/ }).click();
-  await page.getByRole("menuitem", { name: /^New document$/i }).click();
-  await page.waitForTimeout(2_000);
-  const card = page.locator(".cd-file-card").filter({ hasText: /Untitled \d+\.docx/i });
-  await card.scrollIntoViewIfNeeded();
-  await card.click();
-  await page.getByRole("button", { name: /Open in editor/i }).click();
-  await expect(page).toHaveURL(/\/file\//, { timeout: 10_000 });
-  await page.getByTestId("file-fullscreen").waitFor({ timeout: 15_000 });
-}
-
 test("UX-EDITOR-6: PreviewModal Expand button routes to fullscreen", async ({ page }) => {
   test.setTimeout(45_000);
   await page.getByText("Q2 planning.xlsx").first().click();
@@ -116,26 +103,39 @@ test("UX-EDITOR-4: filename inline rename round-trips through PATCH", async ({ p
   await expect(page.getByTestId("file-fullscreen-title")).toHaveText("Renamed by gate.xlsx");
 });
 
-test("UX-EDITOR-1: sheet editor renders the SDK's built-in Office chrome", async ({ page }) => {
+test("UX-EDITOR-1: sheet editor renders Drive's OWN toolbar around the iframe", async ({ page }) => {
   test.setTimeout(60_000);
   await openSheetEditor(page);
-  // Drive no longer hand-rolls a SheetToolbar — it direct-mounts
-  // <CasualSheets chrome="full">, so the SDK's own Office chrome renders:
-  // a formatting toolbar, a formula bar, and the worksheet tab strip.
-  await expect(page.getByTestId("casual-sheets-toolbar")).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByTestId("casual-sheets-formula-bar")).toBeVisible();
-  await expect(page.getByTestId("casual-sheets-tabs")).toBeVisible();
-  await expect(page.getByTestId("casual-sheets-status-bar")).toBeVisible();
+  // Drive embeds the editor via <iframe> and renders its OWN chrome — the
+  // SheetToolbar ribbon above the grid (NOT the SDK's built-in chrome).
+  // Lock in the v0.6 command set: undo/redo, B/I/U/S, align L/C/R.
+  await expect(page.getByTestId("sheet-toolbar")).toBeVisible({ timeout: 15_000 });
+  for (const cmd of [
+    "undo",
+    "redo",
+    "bold",
+    "italic",
+    "underline",
+    "strikethrough",
+    "align-left",
+    "align-center",
+    "align-right",
+  ]) {
+    await expect(page.getByTestId(`sheet-tool-${cmd}`)).toBeVisible();
+  }
+  // The grid renders inside Drive's iframe (host owns the chrome, iframe
+  // owns the canvas).
+  await expect(page.getByTestId("casual-sheet-workspace")).toBeVisible();
 });
 
-test("UX-EDITOR-1 v2: SDK toolbar exposes font family + size controls", async ({ page }) => {
+test("UX-EDITOR-1 v2: Drive's toolbar exposes font family + size controls", async ({ page }) => {
   test.setTimeout(60_000);
   await openSheetEditor(page);
-  await page.getByTestId("casual-sheets-toolbar").waitFor({ timeout: 15_000 });
-  // Font family + size pickers come from the SDK chrome, driven through
-  // the facade with args intact (the old iframe ref dropped args).
-  await expect(page.getByTestId("cs-font-family")).toBeVisible();
-  await expect(page.getByTestId("cs-font-size")).toBeVisible();
+  await page.getByTestId("sheet-toolbar").waitFor({ timeout: 15_000 });
+  // Drive's toolbar dispatches set-font-family / set-font-size over the
+  // embed transport's executeCommand (args carried intact).
+  await expect(page.getByTestId("sheet-tool-font-family")).toBeVisible();
+  await expect(page.getByTestId("sheet-tool-font-size")).toBeVisible();
 });
 
 test("UX-EDITOR-5: docx preview shows friendly fallback instead of parse error", async ({
@@ -218,20 +218,11 @@ test("UX-EDITOR-7: video preview mounts the vidstack player, not browser default
   await expect(page.locator(".cd-media-shell--video")).toBeVisible({ timeout: 5_000 });
 });
 
-test("UX-EDITOR-2: doc iframe stays light-themed under prefers-color-scheme:dark", async ({
-  page,
-  context,
-}) => {
-  test.setTimeout(60_000);
-  // Force dark OS preference for THIS test.
-  await context.setExtraHTTPHeaders({});
-  await page.emulateMedia({ colorScheme: "dark" });
-  await openDocEditor(page);
-  // Read theme attribute INSIDE the iframe — copy-embed's MutationObserver
-  // should pin it to "light" even when the SDK toggles to "auto".
-  const handle = await page.getByTestId("casual-doc-editor").elementHandle();
-  const frame = await handle?.contentFrame();
-  if (!frame) throw new Error("iframe contentFrame missing");
-  const theme = await frame.evaluate(() => document.documentElement.getAttribute("data-theme"));
-  expect(theme).toBe("light");
-});
+// NB: the former "UX-EDITOR-2: iframe stays light-themed under
+// prefers-color-scheme:dark" gate is intentionally removed. It locked in
+// copy-embed's theme-lock shim (an inline MutationObserver pinning
+// data-theme="light"), which was a workaround for pre-0.11 embed builds.
+// The rewritten copy-embed copies the SDK's clean embed runtimes verbatim
+// with no HTML patching, so there's no host-injected theme lock to assert.
+// Host-driven theming will return as an explicit `casual.command.set.theme`
+// wire (the protocol already defines it) once Drive ships a theme toggle.

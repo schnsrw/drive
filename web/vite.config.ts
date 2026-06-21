@@ -67,8 +67,12 @@ export default defineConfig(({ mode }) => {
             if (/[\\/]node_modules[\\/](prosemirror-[^/\\]+)[\\/]/.test(id)) {
               return "vendor-prosemirror";
             }
-            if (id.includes("@univerjs/")) return "vendor-univer";
-            if (id.includes("@casualoffice/sheets")) return "vendor-univer";
+            // Drive embeds the sheet editor via <iframe> (Univer runs
+            // inside the iframe runtime, copied to public/embed/sheets/),
+            // so the app bundle only pulls @casualoffice/sheets/embed —
+            // ~12 KB of postMessage transport glue, NO @univerjs/*. Keep it
+            // in its own small chunk.
+            if (id.includes("@casualoffice/sheets")) return "vendor-sheets-embed";
             if (id.includes("@schnsrw/docx-js-editor")) return "vendor-docx-editor";
             if (id.includes("yjs") || id.includes("y-prosemirror") || id.includes("y-websocket")) {
               return "vendor-collab";
